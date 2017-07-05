@@ -11,7 +11,7 @@
 
 {% block content %}
     <h3> System Settings </h3>
-    <form class="form-horizontal" method="post">{% csrf_token %}
+    <form class="form-horizontal" enctype="multipart/form-data" method="POST">{% csrf_token %}
         {% include "dojo/form_fields.html" with form=form %}
         <div class="form-group">
             <div class="col-sm-offset-2 col-sm-10">

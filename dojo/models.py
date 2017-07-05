@@ -36,6 +36,7 @@ class System_Settings(models.Model):
                                                     'in most places, whereas if turned off Critical, High, Medium, etc will be displayed.')
     url_prefix = models.CharField(max_length=300, default='', blank=True)
     team_name = models.CharField(max_length=100, default='', blank=True)
+    team_logo = models.ImageField(upload_to='logo/', default='', blank=True)
     time_zone = models.CharField(max_length=50,
                                  choices=[(tz,tz) for tz in all_timezones],
                                  default='UTC',blank=False)

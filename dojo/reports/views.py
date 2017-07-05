@@ -257,7 +257,8 @@ def report_cover_page(request):
 
     return render(request,
                   'dojo/report_cover_page.html',
-                  {'report_title': report_title,
+                  {'brand_logo': get_system_setting('team_logo').url,
+                   'report_title': report_title,
                    'report_subtitle': report_subtitle,
                    'report_info': report_info})
 
