@@ -15,7 +15,9 @@ before_script:
   - sleep 3 # give xvfb some time to start
 
 before_install:
-  ## Selenium and ZAP requirements
+  - sudo apt-get -qq update
+  - sudo apt-get install -y libxml2-dev
+    ## Selenium and ZAP requirements
   - pip install selenium==2.53.6
   - pip install requests
   - pip install python-owasp-zap-v2.4
