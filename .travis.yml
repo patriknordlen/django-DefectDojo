@@ -16,7 +16,7 @@ before_script:
 
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y libxml2-dev libxslt1-dev
+  - sudo apt-get install -y libxml2-dev libxslt1-dev python-dev zlib1g-dev
     ## Selenium and ZAP requirements
   - pip install selenium==2.53.6
   - pip install requests
