@@ -22,6 +22,7 @@ before_install:
   - pip install prettytable
   - pip install bandit
   - pip install amqp
+
   ## Docker Build
   - export DOJO_ADMIN_USER=test_user
   - export DOJO_ADMIN_PASSWORD=test_password
