@@ -4,6 +4,8 @@ language: python
 
 install: true
 
+group: deprecated-2017Q2
+
 env:
   - COMMIT=${TRAVIS_COMMIT::8}
 services:
