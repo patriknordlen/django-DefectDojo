@@ -30,6 +30,7 @@ setup(
         'celery==3.1.24',
         'kombu==3.0.37',
         'amqp',
+        'vine',
         'sqlalchemy',
         'django-polymorphic==1.2',
         'pdfkit==0.5.0',
