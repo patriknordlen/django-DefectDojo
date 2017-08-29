@@ -827,7 +827,7 @@ def generate_report(request, obj):
                    'engagement': engagement,
                    'test': test,
                    'endpoint': endpoint,
-                   'findings': findings,
+                   'findings': findings.qs,
                    'paged_findings': paged_findings,
                    'report_form': report_form,
                    })
