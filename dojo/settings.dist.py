@@ -136,6 +136,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'dojo.middleware.LoginRequiredMiddleware',
+    'dojo.middleware.TimezoneMiddleware'
 )
 
 ROOT_URLCONF = 'dojo.urls'
@@ -193,6 +194,7 @@ INSTALLED_APPS = (
     'tagging',
     'custom_field',
     'imagekit',
+    'multiselectfield'
 )
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
