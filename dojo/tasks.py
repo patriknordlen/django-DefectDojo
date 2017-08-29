@@ -68,6 +68,7 @@ def async_pdf_report(self,
     config = pdfkit.configuration(wkhtmltopdf=settings.WKHTMLTOPDF_PATH)
     try:
         report.task_id = async_pdf_report.request.id
+        report.status = 'running'
         report.save()
         bytes = render_to_string(template, context)
         itoc = context['include_table_of_contents']
@@ -91,7 +92,11 @@ def async_pdf_report(self,
         report.done_datetime = timezone.now()
         report.save()
 
-        create_notification(event='report_created', title='Report created', description='The report "%s" is ready.' % report.name, url=uri, report=report, objowner=report.requester)
+        create_notification(event='report_created', 
+                            title='Report created',
+                            description='The report "%s" is ready.' % report.name,
+                            icon='file-text',
+                            url=uri, report=report, objowner=report.requester)
     except Exception as e:
         report.status = 'error'
         report.save()

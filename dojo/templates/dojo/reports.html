@@ -71,10 +71,15 @@
                                                 Delete <span class="fa fa-trash"></span>
                                             </button>
                                         </form>
-                                    {% elif report.status == 'requested' %}
+                                    {% elif report.status == 'requested' or report.status == 'running' %}
                                         <a class="btn btn-sm btn-warning">
+                                        {% if report.status == 'requested' %}
+                                            Pending&nbsp;&nbsp;&nbsp;
+                                            <i class="fa fa-hourglass-o"></i>
+                                        {% elif report.status == 'running' %}
                                             Running&nbsp;&nbsp;&nbsp;
                                             <i class="fa fa-spinner fa-pulse"></i>
+                                        {% endif %}
                                         </a>
                                         <form method="post" action="{% url 'revoke_report' report.id %}"
                                               style="display: inline" class="form-inline form">
@@ -88,6 +93,9 @@
                                         <a class="btn btn-sm btn-warning">
                                             {{ report.status|capfirst }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                                             <i class="fa fa-exclamation-triangle"></i>
+                                        </a>
+                                        <a class="btn btn-sm btn-info" href="{% url 'regen_report' report.id %}">
+                                            Regenerate <span class="fa fa-refresh"></span>
                                         </a>
                                         <form method="post" action="{% url 'delete_report' report.id %}"
                                               style="display: inline" class="form-inline form">
@@ -129,19 +137,23 @@
         });
 
         function get_report_status() {
-            $('span.report_status.requested').each(function () {
+            $('span.report_status.requested,span.report_status.running').each(function () {
                 $.get("{% url 'report_status' 0 %}".replace(0, this.id.toString()), function (data, status) {
                     if (data.status == 'success') {
-                        $('span#'+data.id).removeClass('requested').addClass('alert-success');
+                        $('span#'+data.id).removeClass('running').addClass('alert-success');
                         $('span#'+data.id).html("<a class='btn btn-primary btn-sm' href='/reports/[id]/download'>Download <span class='fa fa-download'></span></a> <a class='btn btn-sm btn-info' href='/reports/[id]/regen'>Regenerate <span class='fa fa-refresh'></span></a> <form method='post' action='/reports/[id]/delete' style='display: inline' class='form-inline form'>{% csrf_token %}<input type='hidden' name='id' value='[id]'/><button type='submit' class='btn btn-danger btn-sm report-delete'>Delete <span class='fa fa-trash'></span></button></form>".replace(/\[id\]/g, data.id));
                     }
                     else if (data.status == 'requested') {
                         // do nothing
                     }
+                    else if (data.status == 'running') {
+                        $('span#'+data.id).removeClass('requested').addClass('running');
+                        $('span#'+data.id).html("<a class='btn btn-sm btn-warning'>Running&nbsp;&nbsp;&nbsp;<i class='fa fa-spinner fa-pulse'></i></a> <form method='post' action='' style='display: inline' class='form-inline form'>{% csrf_token %}<input type='hidden' name='id' value='{{ report.id }}'/><button type='submit' class='btn btn-danger btn-sm report-delete'>Stop <span class='fa fa-stop'></span></button></form>");
+                    }
                     else {
                         $('span#'+data.id).removeClass('requested').addClass('alert-error');
                         
-                        $('span#'+data.id).html("<a class='btn btn-sm btn-warning'>" + data.status.charAt(0).toUpperCase() + data.status.slice(1) + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<i class='fa fa-exclamation-triangle'></i></a> <form method='post' action='/reports/[id]/delete' style='display: inline' class='form-inline form'>{% csrf_token %}<input type='hidden' name='id' value='[id]'/><button type='submit' class='btn btn-danger btn-sm report-delete'>Delete <span class='fa fa-trash'></span></button></form>".replace(/\[id\]/g, data.id));
+                        $('span#'+data.id).html("<a class='btn btn-sm btn-warning'>" + data.status.charAt(0).toUpperCase() + data.status.slice(1) + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<i class='fa fa-exclamation-triangle'></i></a> <a class='btn btn-sm btn-info' href='/reports/[id]/regen'>Regenerate <span class='fa fa-refresh'></span></a> <form method='post' action='/reports/[id]/delete' style='display: inline' class='form-inline form'>{% csrf_token %}<input type='hidden' name='id' value='[id]'/><button type='submit' class='btn btn-danger btn-sm report-delete'>Delete <span class='fa fa-trash'></span></button></form>".replace(/\[id\]/g, data.id));
                     }
                 });
             });
