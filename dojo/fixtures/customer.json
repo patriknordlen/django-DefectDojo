@@ -1,0 +1,9 @@
+[
+  {
+    "fields": {
+      "name": "Example customer"
+    },
+    "model": "dojo.customer",
+    "pk": 1
+  }
+]

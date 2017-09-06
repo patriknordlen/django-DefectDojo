@@ -13,7 +13,7 @@
     {% for key, value in findings.items %}
 
         <h3 class="inline-block">{{ key.name }}</h3> [
-        <a href="{% url 'product_type_metrics' key.id %}" class="inline-block">View Details</a>]
+        <a href="{% url 'customer_metrics' key.id %}" class="inline-block">View Details</a>]
         <div class="panel panel-default table-responsive">
             <table class="table table-bordered table-condensed table-striped">
                 <thead>

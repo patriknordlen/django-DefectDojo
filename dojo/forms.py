@@ -16,7 +16,7 @@ from tagging.forms import TagField
 from tagging.models import Tag
 
 from dojo import settings
-from dojo.models import Finding, Product_Type, Product, ScanSettings, VA, \
+from dojo.models import Finding, Customer, Product, ScanSettings, VA, \
     Check_List, User, Engagement, Test, Test_Type, Notes, Risk_Acceptance, \
     Development_Environment, Dojo_User, Scan, Endpoint, Stub_Finding, Finding_Template, Report, FindingImage, \
     JIRA_Issue, JIRA_PKey, JIRA_Conf, UserContactInfo, Tool_Type, Tool_Configuration, Tool_Product_Settings, \
@@ -136,9 +136,9 @@ class MonthYearWidget(Widget):
         return data.get(name, None)
 
 
-class Product_TypeForm(forms.ModelForm):
+class CustomerForm(forms.ModelForm):
     class Meta:
-        model = Product_Type
+        model = Customer
         fields = ['name', 'critical_product', 'key_product']
 
 
@@ -162,8 +162,8 @@ class ProductForm(forms.ModelForm):
                            required=False,
                            help_text="Add tags that help describe this product.  "
                                      "Choose from the list or add new tags.  Press TAB key to add.")
-    prod_type = forms.ModelChoiceField(label='Product Type',
-                                       queryset=Product_Type.objects.all().order_by('name'),
+    prod_type = forms.ModelChoiceField(label='Customer',
+                                       queryset=Customer.objects.all().order_by('name'),
                                        required=True)
 
     authorized_users = forms.ModelMultipleChoiceField(
@@ -205,7 +205,7 @@ class ProductMetaDataForm(forms.ModelForm):
         exclude = ['field_type', 'content_type', 'default_value', 'is_required', 'field_choices']
 
 
-class Product_TypeProductForm(forms.ModelForm):
+class CustomerProductForm(forms.ModelForm):
     name = forms.CharField(max_length=50, required=True)
     description = forms.CharField(widget=forms.Textarea(attrs={}),
                                   required=True)
@@ -216,7 +216,7 @@ class Product_TypeProductForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         non_staff = User.objects.exclude(is_staff=True)
-        super(Product_TypeProductForm, self).__init__(*args, **kwargs)
+        super(CustomerProductForm, self).__init__(*args, **kwargs)
         self.fields['authorized_users'].queryset = non_staff
 
     class Meta:
@@ -1158,17 +1158,17 @@ class MetricsFilterForm(forms.Form):
                                          help_text=('Hold down "Control", or '
                                                     '"Command" on a Mac, to '
                                                     'select more than one.'))
-    exclude_product_types = forms.ModelMultipleChoiceField(
-        required=False, queryset=Product_Type.objects.all().order_by('name'))
+    exclude_customers = forms.ModelMultipleChoiceField(
+        required=False, queryset=Customer.objects.all().order_by('name'))
 
-    # add the ability to exclude the exclude_product_types field
+    # add the ability to exclude the exclude_customers field
     def __init__(self, *args, **kwargs):
-        exclude_product_types = kwargs.get('exclude_product_types', False)
-        if 'exclude_product_types' in kwargs:
-            del kwargs['exclude_product_types']
+        exclude_customers = kwargs.get('exclude_customers', False)
+        if 'exclude_customers' in kwargs:
+            del kwargs['exclude_customers']
         super(MetricsFilterForm, self).__init__(*args, **kwargs)
-        if exclude_product_types:
-            del self.fields['exclude_product_types']
+        if exclude_customers:
+            del self.fields['exclude_customers']
 
 
 class DojoUserForm(forms.ModelForm):
@@ -1219,8 +1219,8 @@ class ProductTypeCountsForm(forms.Form):
         'required': '*'})
     year = forms.ChoiceField(choices=get_years, required=True, error_messages={
         'required': '*'})
-    product_type = forms.ModelChoiceField(required=True,
-                                          queryset=Product_Type.objects.all(),
+    customer = forms.ModelChoiceField(required=True,
+                                          queryset=Customer.objects.all(),
                                           error_messages={
                                               'required': '*'})
 

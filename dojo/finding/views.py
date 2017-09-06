@@ -28,7 +28,7 @@ from dojo.filters import OpenFindingFilter, \
 from dojo.forms import NoteForm, CloseFindingForm, FindingForm, PromoteFindingForm, FindingTemplateForm, \
     DeleteFindingTemplateForm, FindingImageFormSet, JIRAFindingForm, ReviewFindingForm, ClearFindingReviewForm, \
     DefectFindingForm, StubFindingForm
-from dojo.models import Product_Type, Finding, Notes, \
+from dojo.models import Customer, Finding, Notes, \
     Risk_Acceptance, BurpRawRequestResponse, Stub_Finding, Endpoint, Finding_Template, FindingImage, \
     FindingImageAccessToken, JIRA_Issue, JIRA_PKey, JIRA_Conf, Dojo_User, Cred_User, Cred_Mapping, Test
 from dojo.utils import get_page_items, add_breadcrumb, FileIterWrapper, send_review_email, process_notifications, \
@@ -73,11 +73,11 @@ def open_findings(request):
     title_words = sorted(set(title_words))
     paged_findings = get_page_items(request, findings.qs, 25)
 
-    product_type = None
+    customer = None
     if 'test__engagement__product__prod_type' in request.GET:
         p = request.GET.getlist('test__engagement__product__prod_type', [])
         if len(p) == 1:
-            product_type = get_object_or_404(Product_Type, id=p[0])
+            customer = get_object_or_404(Customer, id=p[0])
 
     add_breadcrumb(title="Open findings", top_level=not len(request.GET), request=request)
 

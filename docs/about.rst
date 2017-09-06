@@ -17,7 +17,7 @@ This is the name of any project, program, team, or company that you are currentl
 	* Internal wiki
 	* Hipchat
 
-Product types
+customers
 *************
 These can be business unit divisions, different offices or locations, or any other logical way of distinguishing "types" of products.
 

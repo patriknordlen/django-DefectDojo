@@ -4,10 +4,10 @@ Models
 DefectDojo attempts to simplify how users interact with the system by minimizing the number of objects it defines.
 The definition for each as well as sample usages is below.
 
-Product Types
+Customers
 -------------
 
-Product types represent the top level model, these can be business unit divisions, different offices or locations,
+customers represent the top level model, these can be business unit divisions, different offices or locations,
 development teams, or any other logical way of distinguishing "types" of products.
 
 * *Examples:*

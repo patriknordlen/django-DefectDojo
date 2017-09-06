@@ -221,9 +221,9 @@
       app_path: '{{ dojo_src }}'
       virtualenv: '{{ install_path }}'
 
-  - name: Django loaddata product_type
+  - name: Django loaddata customer
     django_manage:
-      command: loaddata product_type
+      command: loaddata customer
       app_path: '{{ dojo_src }}'
       virtualenv: '{{ install_path }}'
 

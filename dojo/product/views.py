@@ -19,7 +19,7 @@ from django.utils import timezone
 
 from dojo.filters import ProductFilter, ProductFindingFilter
 from dojo.forms import ProductForm, EngForm, DeleteProductForm, ProductMetaDataForm, JIRAPKeyForm, JIRAFindingForm, AdHocFindingForm
-from dojo.models import Product_Type, Finding, Product, Engagement, ScanSettings, Risk_Acceptance, Test, JIRA_PKey, \
+from dojo.models import Customer, Finding, Product, Engagement, ScanSettings, Risk_Acceptance, Test, JIRA_PKey, \
     Tool_Product_Settings, Cred_User, Cred_Mapping, Test_Type
 from dojo.utils import get_page_items, add_breadcrumb, get_punchcard_data, get_system_setting, create_notification
 from custom_field.models import CustomFieldValue, CustomField
@@ -50,12 +50,12 @@ def product(request):
                           authorized_users__in=[request.user])
                       for word in product.name.split() if len(word) > 2]
 
-    product_type = None
+    customer = None
 
     if 'prod_type' in request.GET:
         p = request.GET.getlist('prod_type', [])
         if len(p) == 1:
-            product_type = get_object_or_404(Product_Type, id=p[0])
+            customer = get_object_or_404(Customer, id=p[0])
     """
     if 'tags' in request.GET:
         tags = request.GET.getlist('tags', [])

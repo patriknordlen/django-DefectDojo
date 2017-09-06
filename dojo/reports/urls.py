@@ -7,7 +7,7 @@ urlpatterns = [
     url(r'^reports$',
         views.reports, name='reports'),
     url(r'^product/type/(?P<ptid>\d+)/report$',
-        views.product_type_report, name='product_type_report'),
+        views.customer_report, name='customer_report'),
     url(r'^product/(?P<pid>\d+)/report$',
         views.product_report, name='product_report'),
     url(r'^product/(?P<pid>\d+)/endpoint/report$',

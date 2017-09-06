@@ -31,14 +31,14 @@ Manager
 Date Created
     Stores when the Product was fist added to DefectDojo.
 
-Product Type
+Customer
     Used to group products together.
 
 Authorized Users
     List of users who are allowed to view and interact with the product.
 
 Products are listed on the ``/product`` page and can be filtered by their attributes as well as sorted by their name and
-product type.
+customer.
 
 .. image:: /_static/product_3.png
     :alt: Product Listing Page
@@ -87,7 +87,7 @@ Status
     Describes the current state of the Engagement.  Values include In Progress, On Hold and Completed.
 
 Engagements are listed in the ``/engagement`` page and can be filtered by their attributes as well as sorted by the
-product or product type.
+product or customer.
 
 .. image:: /_static/eng_2.png
     :alt: Engagement Listing Page
@@ -316,29 +316,29 @@ Metrics
 -------
 
 DefectDojo provides a number of metrics visualization in order to help with reporting, awareness and to be able to
-quickly communicate a products/product type's security stance.
+quickly communicate a products/customer's security stance.
 
 The following metric views are provided:
 
-Product Type Metrics
+Customer Metrics
     This view provides graphs displaying Open Bug Count by Month, Accepted Bug Count by Month, Open Bug Count by Week,
     Accepted Bug Count by Week as well as tabular data on Top 10 Products by bug severity, Detail Breakdown of all
     reported findings, Opened Findings, Accepted Findings, Closed Findings, Trending Open Bug Count, Trending Accepted
     Bug Count, and Age of Issues.
 
     .. image:: /_static/met_1.png
-        :alt: Product Type Metrics
+        :alt: Customer Metrics
 
-Product Type Counts
+Customer Counts
     This view provides tabular data of Total Current Security Bug Count, Total Security Bugs Opened In Period, Total
     Security Bugs Closed In Period, Trending Total Bug Count By Month, Top 10 By Bug Severity, and Open Findings.  This
     view works great for communication with stakeholders as it is a snapshot in time of the product.
 
     .. image:: /_static/met_2.png
-        :alt: Product Type Counts
+        :alt: Customer Counts
 
 Simple Metrics
-    Provides tabular data for all Product Types.  The data displayed in this view is the total number of S0, S1, S2, S3,
+    Provides tabular data for all Customers.  The data displayed in this view is the total number of S0, S1, S2, S3,
     S4, Opened This Month, and Closed This Month.
 
     .. image:: /_static/met_3.png
@@ -602,7 +602,7 @@ Reports can be generated for:
 1.  Groups of Products
 2.  Individual Products
 3.  Endpoints
-4.  Product Types
+4.  Customers
 5.  Custom Reports
 
 .. image:: /_static/report_2.png

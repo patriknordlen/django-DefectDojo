@@ -17,7 +17,7 @@ from dojo.finding.urls import urlpatterns as finding_urls
 from dojo.home.urls import urlpatterns as home_urls
 from dojo.metrics.urls import urlpatterns as metrics_urls
 from dojo.product.urls import urlpatterns as prod_urls
-from dojo.product_type.urls import urlpatterns as pt_urls
+from dojo.customer.urls import urlpatterns as pt_urls
 from dojo.reports.urls import urlpatterns as reports_urls
 from dojo.scan.urls import urlpatterns as scan_urls
 from dojo.search.urls import urlpatterns as search_urls

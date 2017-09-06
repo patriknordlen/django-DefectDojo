@@ -105,7 +105,7 @@ class Contact(models.Model):
     updated = models.DateTimeField(editable=False)
 
 
-class Product_Type(models.Model):
+class Customer(models.Model):
     name = models.CharField(max_length=300)
     critical_product = models.BooleanField(default=False)
     key_product = models.BooleanField(default=False)
@@ -155,7 +155,7 @@ class Product_Type(models.Model):
 
     def get_breadcrumbs(self):
         bc = [{'title': self.__unicode__(),
-               'url': reverse('edit_product_type', args=(self.id,))}]
+               'url': reverse('edit_customer', args=(self.id,))}]
         return bc
 
 
@@ -203,7 +203,7 @@ class Product(models.Model):
     team_manager = models.ForeignKey(Dojo_User, null=True, blank=True, related_name='team_manager')
 
     created = models.DateTimeField(editable=False, null=True, blank=True)
-    prod_type = models.ForeignKey(Product_Type, related_name='prod_type',
+    prod_type = models.ForeignKey(Customer, related_name='prod_type',
                                   null=True, blank=True)
     updated = models.DateTimeField(editable=False, null=True, blank=True)
     tid = models.IntegerField(default=0, editable=False)
@@ -1175,7 +1175,7 @@ admin.site.register(Check_List)
 admin.site.register(Test_Type)
 admin.site.register(Endpoint)
 admin.site.register(Product)
-admin.site.register(Product_Type)
+admin.site.register(Customer)
 admin.site.register(Dojo_User)
 admin.site.register(UserContactInfo)
 admin.site.register(Notes)

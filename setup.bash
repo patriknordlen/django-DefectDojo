@@ -131,7 +131,7 @@ if python -c 'import sys; print sys.real_prefix' 2>/dev/null; then
     echo -e "${GREEN}${BOLD}Create Dojo superuser:"
     tput sgr0
     python manage.py createsuperuser
-    python manage.py loaddata product_type
+    python manage.py loaddata customer
     python manage.py loaddata test_type
     python manage.py loaddata development_environment
     python manage.py loaddata system_settings
@@ -145,7 +145,7 @@ else
     echo -e "${GREEN}${BOLD}Create Dojo superuser:"
     tput sgr0
     sudo python manage.py createsuperuser
-    sudo python manage.py loaddata product_type
+    sudo python manage.py loaddata customer
     sudo python manage.py loaddata test_type
     sudo python manage.py loaddata development_environment
     sudo python manage.py loaddata system_settings

@@ -335,7 +335,7 @@ class ProductResource(BaseModelResource):
         detail_allowed_methods = ['get', 'post', 'put']
         queryset = Product.objects.all().order_by('name')
         ordering = ['name', 'id', 'description', 'findings_count', 'created',
-                    'product_type_id']
+                    'customer_id']
         excludes = ['tid', 'manager', 'prod_manager', 'tech_contact',
                     'updated']
         include_resource_uri = True

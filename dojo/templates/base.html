@@ -137,41 +137,12 @@
                                 </li>
                             {% endif %}
                             <li>
-                                {% if request.user.is_staff %}
-                                    <a href="#"><i class="fa fa-list fa-fw"></i> <span>Products</span>
-                                        <span class="glyphicon arrow"></span></a>
-                                {% else %}
-                                    <a href="{% url 'product' %}" title="Product Listing"><i class="fa fa-list fa-fw"></i> <span>Products</span></a>
-                                {% endif %}
-                                {% if request.user.is_staff %}
-                                    <ul class="nav nav-second-level">
-                                        <li>
-                                            <a href="{% url 'product' %}"> All Products</a>
-                                        </li>
-                                        <li>
-                                            <a href="{% url 'product_type' %}">View Product Types</a>
-                                        </li>
-
-                                    </ul>
-                                {% endif %}
-                                <!-- /.nav-second-level -->
+                                <a href="{% url 'product' %}" title="Customer List"><i class="fa fa-list fa-fw"></i> <span>Customers</span></a>
                             </li>
                             {% if request.user.is_staff %}
                                 <li>
                                     <a href="#"><i class="fa fa-inbox fa-fw"></i> <span>Engagements</span><span
                                             class="glyphicon arrow"></span></a>
-                                    <ul class="nav nav-second-level">
-                                        <li>
-                                            <a href="{% url 'engagement' %}">All Engagements</a>
-                                        </li>
-                                        <li>
-                                            <a href="{% url 'test_type' %}">Test Types</a>
-                                        </li>
-                                        <li>
-                                            <a href="{% url 'dev_env' %}">Development Environments</a>
-                                        </li>
-                                    </ul>
-                                    <!-- /.nav-second-level -->
                                 </li>
                                 <li>
                                     <a href="#"><i class="fa fa-bug fa-fw"></i> <span>Findings</span><span
@@ -192,20 +163,6 @@
                                     </ul>
                                     <!-- /.nav-second-level -->
                                 </li>
-                                <li>
-                                    <a href="#"><i class="fa fa-sitemap fa-fw"></i> <span>Endpoints</span><span
-                                            class="glyphicon arrow"></span></a>
-                                    <ul class="nav nav-second-level">
-                                        <li>
-                                            <a href="{% url 'endpoints' %}">All Endpoints</a>
-                                        </li>
-                                        <li>
-                                            <a href="{% url 'vulnerable_endpoints' %}">
-                                                Vulnerable Endpoints
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </li>
                             {% endif %}
                             <li>
                                 <a href="{% url 'reports' %}"><i class="fa fa-file-text-o fa-fw"></i> <span>Reports</span><span
@@ -213,22 +170,6 @@
                                 <ul class="nav nav-second-level">
                                     <li><a href="{% url 'reports' %}"> All Reports </a></li>
                                     <li><a href="{% url 'report_builder' %}"> Report Builder </a></li>
-                                </ul>
-                                <!-- /.nav-second-level -->
-                            </li>
-                            <li>
-                                <a href="/metrics"><i class="fa fa-bar-chart fa-fw"></i> <span>Metrics</span><span
-                                        class="glyphicon arrow"></span></a>
-                                <ul class="nav nav-second-level">
-                                    <li><a href="{% url 'critical_product_metrics' %}"> Critical Product Metrics </a></li>
-                                    <li><a href="{% url 'metrics_product_type' %}"> Product Type Metrics </a></li>
-                                    <li><a href="{% url 'product_type_counts' %}"> Product Type Counts </a></li>
-                                    {% if user.is_staff %}
-                                        <li><a href="{% url 'simple_metrics' %}"> Simple Metrics </a></li>
-                                        <li><a href="{% url 'engineer_metrics' %}"> Engineer Metrics </a></li>
-                                        <li><a href="{% url 'research_metrics' %}"> Security Research Metrics </a></li>
-                                    {% endif %}
-                                    <li><a href="{% url 'metrics' %}?date=5&view=dashboard"> Metrics Dashboard </a></li>
                                 </ul>
                                 <!-- /.nav-second-level -->
                             </li>
@@ -244,14 +185,13 @@
                                 </li>
                             {% endif %}
                                 <li>
-                                    <a href="{% url 'jira' %}"><i class="fa fa-cog fa-fw"></i>
+                                    <a href="#"><i class="fa fa-cog fa-fw"></i>
                                         <span>Configuration</span></a>
                                     <ul class="nav nav-second-level">
                                         <li><a href="{% url 'notifications' %}">Notifications </a></li>
                                         {% if request.user.is_superuser%}
                                         <li><a href="{% url 'system_settings' %}">System Settings </a></li>
                                         {% endif %}
-                                        <li><a href="{% url 'cred' %}">Credential Manager </a></li>
                                         {% if "enable_jira"|get_system_setting %}
                                         <li><a href="{% url 'jira' %}">JIRA </a></li>
                                         {% endif %}

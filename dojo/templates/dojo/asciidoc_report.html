@@ -3,8 +3,8 @@
     {% load event_tags %}
     {% load display_tags %}
     {% load humanize %}
-    {% if product_type %}
-        <h2>= {{ product_type }} =</h2>
+    {% if customer %}
+        <h2>= {{ customer }} =</h2>
     {% elif product %}
         <h2>= {{ product }} {% if endpoints %} - Endpoints {% endif %}=</h2>
     {% elif engagement %}
@@ -24,8 +24,8 @@
         <br>
         <h3>== Executive Summary ==</h3>
         <p>
-            {% if product_type %}
-                {% for prod in product_type.prod_type.all %}
+            {% if customer %}
+                {% for prod in customer.prod_type.all %}
                     <h4>=== {{ prod.name }} ===</h4><br>
 
                     {% if prod.engagement_set.all %}
