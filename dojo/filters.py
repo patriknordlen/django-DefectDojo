@@ -252,8 +252,12 @@ class MetricsDateRangeFilter(ChoiceFilter):
 
 
 class EngagementFilter(DojoFilter):
+#    engagement__lead = ModelChoiceFilter(
+#        queryset=User.objects.filter(
+#            engagement__analysts__isnull=False).distinct(),
+#        label="Lead")
     name = CharFilter(lookup_expr='icontains')
-    prod_type = ModelMultipleChoiceFilter(
+    customer = ModelMultipleChoiceFilter(
         queryset=Customer.objects.all().order_by('name'),
         label="Customer")
 
@@ -261,23 +265,23 @@ class EngagementFilter(DojoFilter):
         # tuple-mapping retains order
         fields=(
             ('name', 'name'),
-            ('prod_type__name', 'prod_type__name'),
+            ('customer__name', 'customer__name'),
         ),
         field_labels={
             'name': 'Product Name',
-            'prod_type__name': 'Customer',
+            'customer__name': 'Customer',
         }
 
     )
 
     class Meta:
         model = Product
-        fields = ['name', 'prod_type']
+        fields = ['name', 'customer']
 
 
 class ProductFilter(DojoFilter):
     name = CharFilter(lookup_expr='icontains', label="Product Name")
-    prod_type = ModelMultipleChoiceFilter(
+    customer = ModelMultipleChoiceFilter(
         queryset=Customer.objects.all().order_by('name'),
         label="Customer")
 
@@ -285,11 +289,11 @@ class ProductFilter(DojoFilter):
         # tuple-mapping retains order
         fields=(
             ('name', 'name'),
-            ('prod_type__name', 'prod_type__name'),
+            ('customer__name', 'customer__name'),
         ),
         field_labels={
             'name': 'Product Name',
-            'prod_type__name': 'Customer',
+            'customer__name': 'Customer',
         }
 
     )
@@ -304,12 +308,12 @@ class ProductFilter(DojoFilter):
         super(ProductFilter, self).__init__(*args, **kwargs)
 
         if self.user is not None and not self.user.is_staff:
-            self.form.fields['prod_type'].queryset = Customer.objects.filter(
-                prod_type__authorized_users__in=[self.user])
+            self.form.fields['customer'].queryset = Customer.objects.filter(
+                customer__authorized_users__in=[self.user])
 
     class Meta:
         model = Product
-        fields = ['name', 'prod_type']
+        fields = ['name', 'customer']
         exclude = ['tags']
 
 
@@ -371,7 +375,7 @@ class OpenFindingFilter(DojoFilter):
 class OpenFingingSuperFilter(OpenFindingFilter):
     reporter = ModelMultipleChoiceFilter(
         queryset=Dojo_User.objects.all())
-    test__engagement__product__prod_type = ModelMultipleChoiceFilter(
+    test__engagement__product__customer = ModelMultipleChoiceFilter(
         queryset=Customer.objects.all().order_by('name'),
         label="Customer")
 
@@ -386,7 +390,7 @@ class ClosedFindingFilter(DojoFilter):
     test__engagement__product = ModelMultipleChoiceFilter(
         queryset=Product.objects.all(),
         label="Product")
-    test__engagement__product__prod_type = ModelMultipleChoiceFilter(
+    test__engagement__product__customer = ModelMultipleChoiceFilter(
         queryset=Customer.objects.all(),
         label="Customer")
 
@@ -449,7 +453,7 @@ class AcceptedFindingFilter(DojoFilter):
     test__engagement__product = ModelMultipleChoiceFilter(
         queryset=Product.objects.all(),
         label="Product")
-    test__engagement__product__prod_type = ModelMultipleChoiceFilter(
+    test__engagement__product__customer = ModelMultipleChoiceFilter(
         queryset=Customer.objects.all(),
         label="Customer")
 
@@ -647,7 +651,7 @@ class FindingStatusFilter(ChoiceFilter):
 
 class MetricsFindingFilter(FilterSet):
     date = MetricsDateRangeFilter()
-    test__engagement__product__prod_type = ModelMultipleChoiceFilter(
+    test__engagement__product__customer = ModelMultipleChoiceFilter(
         queryset=Customer.objects.all().order_by('name'),
         label="Customer")
     severity = MultipleChoiceFilter(choices=[])
@@ -745,7 +749,7 @@ class ReportFindingFilter(DojoFilter):
 class ReportAuthedFindingFilter(DojoFilter):
     title = CharFilter(lookup_expr='icontains', label='Name')
     test__engagement__product = ModelMultipleChoiceFilter(queryset=Product.objects.all(), label="Product")
-    test__engagement__product__prod_type = ModelMultipleChoiceFilter(queryset=Customer.objects.all(),
+    test__engagement__product__customer = ModelMultipleChoiceFilter(queryset=Customer.objects.all(),
                                                                      label="Customer")
     severity = MultipleChoiceFilter(choices=SEVERITY_CHOICES)
     active = ReportBooleanFilter()

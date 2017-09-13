@@ -137,6 +137,7 @@ class MonthYearWidget(Widget):
 
 
 class CustomerForm(forms.ModelForm):
+    name = forms.CharField(required=True)
     class Meta:
         model = Customer
         fields = ['name', 'critical_product', 'key_product']

@@ -104,7 +104,7 @@ class Customer(models.Model):
     key_product = models.BooleanField(default=False)
 
     def critical_present(self):
-        c_findings = Finding.objects.filter(test__engagement__product__prod_type=self, severity='Critical')
+        c_findings = Finding.objects.filter(test__engagement__product__customer=self, severity='Critical')
         if c_findings.count() > 0:
             return True
 
