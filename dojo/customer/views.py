@@ -6,10 +6,11 @@ from django.contrib import messages
 from django.contrib.auth.decorators import user_passes_test
 from django.core.urlresolvers import reverse
 from django.core import serializers
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
 from dojo.filters import ProductTypeFilter
 from dojo.forms import CustomerForm, CustomerProductForm
-from dojo.models import Customer
+from dojo.models import Customer, Product
 from dojo.utils import get_page_items, add_breadcrumb, get_system_setting
 
 logging.basicConfig(
@@ -44,6 +45,24 @@ def customer(request):
         'name_words': name_words})
 
 
+def customers_json(request):
+    if request.user.is_superuser:
+        customers = Customer.objects.all().order_by('name')
+    else:
+        customers = Customer.objects.filter(authorized_users__in=[request.user]).order_by('name')
+
+    return HttpResponse(serializers.serialize('json', customers), content_type='application/json')
+
+
+def customer_json(request, cid):
+    if request.user.is_superuser:
+        products = Product.objects.filter(id=cid)
+    else:
+        products = Product.objects.filter(id=cid,customer__authorized_users__in=[request.user])
+
+    return HttpResponse(serializers.serialize('json', products), content_type='application/json')
+
+
 @user_passes_test(lambda u: u.is_staff)
 def add_customer(request):
     form = CustomerForm()
@@ -66,8 +85,8 @@ def add_customer(request):
 
 
 @user_passes_test(lambda u: u.is_staff)
-def edit_customer(request, ptid):
-    pt = get_object_or_404(Customer, pk=ptid)
+def edit_customer(request, cid):
+    pt = get_object_or_404(Customer, pk=cid)
     form = CustomerForm(instance=pt)
     if request.method == 'POST':
         form = CustomerForm(request.POST, instance=pt)
@@ -88,10 +107,12 @@ def edit_customer(request, ptid):
 
 
 @user_passes_test(lambda u: u.is_staff)
-def add_product_to_customer(request, ptid):
-    pt = get_object_or_404(Customer, pk=ptid)
-    form = CustomerProductForm(initial={'prod_type': pt})
-    add_breadcrumb(title="New %s Product" % pt.name, top_level=False, request=request)
+def add_product_to_customer(request, cid):
+    customer = get_object_or_404(Customer, pk=cid)
+    form = CustomerProductForm(initial={'customer': customer.id})
+    print form
+    add_breadcrumb(title="New %s Product" % customer.name, top_level=False, request=request)
     return render(request, 'dojo/new_product.html',
                   {'form': form,
+                   'customer': customer.name
                    })
