@@ -348,32 +348,24 @@
         <div class="col-md-12">
             <div class="panel panel-default table-responsive">
                 <div class="panel-heading">
-                    <h4>Details</h4>
+                    <h4>Contacts</h4>
                 </div>
 
                 <table class="table-striped table table-condensed table-hover centered">
                     <tr>
-                        <th>Customer</th>
-                        <th>Team Manager</th>
-                        <th>Product Manager</th>
-                        <th>Technical Contact</th>
-                        <th>Authorized Users</th>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Email</th>
+                        <th>Phone</th>
                     </tr>
+                    {% for c in prod.contacts %}
                     <tr>
-                        <td>{{ prod.prod_type }}</td>
-                        <td>{{ prod.manager | default:"Unknown" }}</td>
-                        <td>{{ prod.prod_manager | default:"Unknown" }}</td>
-                        <td>{{ prod.tech_contact | default:"Unknown" }}</td>
-                        <td>
-                            {% if prod.authorized_users.all %}
-                                <ul class="no-bullets">
-                                    {% for au in prod.authorized_users.all %}
-                                        <li class="">{{ au }}</li>
-                                    {% endfor %}
-                                </ul>
-                            {% endif %}
-                        </td>
+                        <td>{{ c.name }}</td>
+                        <td>{{ c.role }}</td>
+                        <td>{{ c.email }}</td>
+                        <td>{{ c.phone }}</td>
                     </tr>
+                    {% endfor %}
                 </table>
 
             </div>
