@@ -35,6 +35,7 @@ def dashboard(request):
     now = timezone.now()
     seven_days_ago = now - timedelta(days=7)
     if request.user.is_superuser:
+        engagements = Engagement.objects.filter(active=True)
         engagement_count = Engagement.objects.filter(active=True).count()
         finding_count = Finding.objects.filter(verified=True,
                                                mitigated=None,
@@ -49,6 +50,8 @@ def dashboard(request):
         # forever counts
         findings = Finding.objects.filter(verified=True)
     else:
+        engagements = Engagement.objects.filter(lead=request.user,
+                                                     active=True)
         engagement_count = Engagement.objects.filter(lead=request.user,
                                                      active=True).count()
         finding_count = Finding.objects.filter(reporter=request.user,
@@ -125,7 +128,8 @@ def dashboard(request):
     add_breadcrumb(request=request, clear=True)
     return render(request,
                   'dojo/dashboard.html',
-                  {'engagement_count': engagement_count,
+                  {'engagements':engagements,
+                   'engagement_count': engagement_count,
                    'finding_count': finding_count,
                    'mitigated_count': mitigated_count,
                    'accepted_count': accepted_count,
