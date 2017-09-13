@@ -137,7 +137,10 @@
                                 </li>
                             {% endif %}
                             <li>
-                                <a href="{% url 'product' %}" title="Customer List"><i class="fa fa-list fa-fw"></i> <span>Customers</span></a>
+                                <a href="{% url 'customer' %}" title="Customer List" id="customer-parent"><i class="fa fa-list fa-fw"></i> <span>Customers</span></a>
+                                <ul class="nav nav-second-level" id="customer-container">
+                                    <li><div class="text-center"><i class="fa fa-spin fa-spinner"></i></div></li>
+                                </ul>
                             </li>
                             {% if request.user.is_staff %}
                                 <li>
@@ -311,11 +314,19 @@
 <script type="application/javascript">
     $(document).ready(function() {
         $('.has-popover').popover({'trigger':'hover'});
-        $('.dropdown-toggle').click(function() { get_alerts(); });
+        $('.dropdown-toggle').click(function() { get_alerts(); reset_alerts(); });
+        $('#customer-parent').mouseenter(function() { get_customers(); });
+        $('#engagement-menu').mouseenter(function() { get_engagements(); });
 
         setInterval(function() {
             update_alertcount();
         }, 10000);
+
+        function reset_alerts() {
+            $.get("{% url 'clearalerts' %}", function(data) {
+                update_alertcount();
+            });
+        }
 
         function update_alertcount() {
             $.get("{% url 'alertcount' %}", function (data) {
@@ -323,6 +334,27 @@
                     $('#alert_count').text(data.count);
                     $('#alert_count').removeClass().addClass('badge badge-count badge-count' + data.count);
                 }
+            });
+        }
+
+        function get_products(cid) {
+            $.get("/customer/" + cid + "/json", function(data) {
+                $('#product-container-' + cid).empty();
+                $.each(data, function(i, elem) {
+                    $('#product-container-' + cid).append('<li><a href="/product/' + elem.pk + '">' + elem.fields.name + '</a></li>');
+                });
+                $('#product-container-' + cid).append('<li><a href="/customer/' + cid + '/add_product"><i class="fa fa-fw fa-plus"></i> Add product</a></li>');
+            });
+        }
+
+        function get_customers() {
+            $.get("{% url 'customers_json' %}", function(data) {
+                $('#customer-container').empty();
+                $.each(data, function(i, elem) {
+                    $('#customer-container').append('<li id="customer-' + elem.pk + '"><a href="/customer/' + elem.pk + '">' + elem.fields.name + '</a><ul id="product-container-' + elem.pk + '" class="nav nav-third-level"></ul></li>');
+                    $('#customer-' + elem.pk).mouseenter(function() { get_products(elem.pk); })
+                });
+                $('#customer-container').append('<li><a href="{% url "add_customer" %}"><i class="fa fa-fw fa-plus"></i> Add customer</a></li>');
             });
         }
 
