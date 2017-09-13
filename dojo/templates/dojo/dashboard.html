@@ -1,12 +1,14 @@
 {% extends "base.html" %}
 {% load static from staticfiles %}
+{% load navigation_tags %}
 {% block add_styles %}
     .chart {height: 300px}
     .status .panel {min-height: 185px;background-color: #f5f5f5;}
     #punchcard {height: 350px}
 {% endblock %}
 {% block content %}
-    {% if request.user.is_superuser %}
+{% load display_tags %}
+{% if request.user.is_superuser %}
         <h3>Team Dashboard</h3>
     {% else %}
         <h3>Dashboard for {{ request.user.get_full_name }}</h3>
@@ -25,22 +27,31 @@
                         </div>
                     </div>
                 </div>
-                {% if request.user.is_superuser %}
+                <!-- {% if request.user.is_superuser %}
                     <a href="{% url 'engagement' %}">
                 {% else %}
                     <a href="{% url 'engagement' %}?engagement__lead={{ request.user.id }}">
-                {% endif %}
-                <div class="panel-footer">
+                {% endif %} -->
+                <!-- <div class="panel panel-default"> -->
                     {% if engagements %}
-                    <table class="col-xs-9">
-                        <tr><th>Customer</th><th>Name</th><th>Start</th><th>End</th><th>Analysts</th></tr>
+                    <table class="tablesorter-bootstrap table table-bordered table-condensed table-striped table-hover">
+                     <tr>
+                         <th>{% dojo_sort request 'ID' 'id' %}</th>
+                         <th>{% dojo_sort request 'Customer' 'customer' %}</th>
+                         <th>{% dojo_sort request 'Product' 'product' %}</th>
+                         <th>{% dojo_sort request 'Start' 'target_start' %}</th>
+                         <th>{% dojo_sort request 'End' 'target_end' %}</th>
+                         <th>Analysts</th>
+                     </tr>
                         {% for e in engagements %}
                             <tr>
-                                <td>{{ e.customer }}</td>
-                                <td>{{ e.name }}</td>
-                                <td>{{ e.start_date }}</td>
-                                <td>{{ e.end_date }}</td>
-                                <td>{{ e.analysts }}</td>
+                                <td><a href="{% url 'view_engagement' e.id %}"><div class="item-container">{{ e.id }}</div></td>
+                                <td>{{ e.product.customer }}</td>
+                                <td>{{ e.product.name }}</td>
+                                <td>{{ e.target_start }}</td>
+                                <td>{{ e.target_end }}</td>
+                                <td>{% for a in e.analysts.all %} {{ a }} {% endfor %}</td>
+                                </a>
                             </tr>
                         {% endfor %}
                     </table>
@@ -49,8 +60,8 @@
                     <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
 
                     <div class="clearfix"></div> -->
-                </div>
-                </a>
+                <!-- </div> -->
+                    <!-- </a> -->
             </div>
         </div>
     </div>
