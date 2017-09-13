@@ -54,7 +54,7 @@ class DojoTests(unittest.TestCase):
         driver.find_element_by_id("id_name").send_keys("QA Test")
         driver.find_element_by_id("id_description").clear()
         driver.find_element_by_id("id_description").send_keys("QA Test 1 Description")
-        Select(driver.find_element_by_id("id_prod_type")).select_by_visible_text("Research and Development")
+        Select(driver.find_element_by_id("id_customer")).select_by_visible_text("Research and Development")
         driver.find_element_by_css_selector("input.btn.btn-primary").click()
         productTxt = driver.find_element_by_tag_name("BODY").text
         self.assertTrue(re.search(r'Product added successfully', productTxt))
