@@ -323,7 +323,7 @@ class UserResource(BaseModelResource):
 
 """
     POST, PUT
-    Expects *product name, *description, *prod_type [1-7]
+    Expects *product name, *description, *customer [1-7]
 """
 
 
@@ -342,7 +342,7 @@ class ProductResource(BaseModelResource):
         filtering = {
             'id': ALL,
             'name': ALL,
-            'prod_type': ALL,
+            'customer': ALL,
             'created': ALL,
             'findings_count': ALL
         }
@@ -356,9 +356,9 @@ class ProductResource(BaseModelResource):
 
     def dehydrate(self, bundle):
         try:
-            bundle.data['prod_type'] = bundle.obj.prod_type
+            bundle.data['customer'] = bundle.obj.customer
         except:
-            bundle.data['prod_type'] = 'unknown'
+            bundle.data['customer'] = 'unknown'
         bundle.data['findings_count'] = bundle.obj.findings_count
         return bundle
 

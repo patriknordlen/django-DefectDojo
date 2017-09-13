@@ -1020,7 +1020,7 @@ def create_notification(event=None, **kwargs):
 
     def send_alert_notification(user=None):
         icon = kwargs.get('icon', 'info-circle')
-        alert = Alerts(user_id=user, 
+        alert = Alerts(user=user, 
                        title=kwargs.get('title'),
                        description=create_notification_message(event, 'alert'),
                        url=kwargs.get('url', reverse('alerts')),

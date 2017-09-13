@@ -9,7 +9,7 @@ register = template.Library()
 
 @register.simple_tag(takes_context=True)
 def alert_count(context):
-    count = Alerts.objects.filter(user_id=context['request'].user).count()
+    count = Alerts.objects.filter(user=context['request'].user,read=False).count()
     return count if count > 0 else 0
 
 
