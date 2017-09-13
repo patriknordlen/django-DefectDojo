@@ -138,9 +138,10 @@ class MonthYearWidget(Widget):
 
 class CustomerForm(forms.ModelForm):
     name = forms.CharField(required=True)
+#    contacts = forms.
     class Meta:
         model = Customer
-        fields = ['name', 'critical_product', 'key_product']
+        fields = ['name']
 
 
 class Test_TypeForm(forms.ModelForm):
@@ -163,7 +164,7 @@ class ProductForm(forms.ModelForm):
                            required=False,
                            help_text="Add tags that help describe this product.  "
                                      "Choose from the list or add new tags.  Press TAB key to add.")
-    prod_type = forms.ModelChoiceField(label='Customer',
+    customer = forms.ModelChoiceField(label='Customer',
                                        queryset=Customer.objects.all().order_by('name'),
                                        required=True)
 
@@ -182,8 +183,7 @@ class ProductForm(forms.ModelForm):
 
     class Meta:
         model = Product
-        fields = ['name', 'description', 'tags', 'prod_manager', 'tech_contact', 'manager', 'prod_type',
-                  'authorized_users']
+        fields = ['name', 'description', 'tags', 'customer','authorized_users']
 
 
 class DeleteProductForm(forms.ModelForm):
@@ -193,7 +193,7 @@ class DeleteProductForm(forms.ModelForm):
     class Meta:
         model = Product
         exclude = ['name', 'description', 'prod_manager', 'tech_contact', 'manager', 'created',
-                   'prod_type', 'updated', 'tid', 'authorized_users', 'product_manager',
+                   'customer', 'updated', 'tid', 'authorized_users', 'product_manager',
                    'technical_contact', 'team_manager']
 
 
@@ -210,6 +210,7 @@ class CustomerProductForm(forms.ModelForm):
     name = forms.CharField(max_length=50, required=True)
     description = forms.CharField(widget=forms.Textarea(attrs={}),
                                   required=True)
+    customer = forms.IntegerField(widget=forms.HiddenInput())
 
     authorized_users = forms.ModelMultipleChoiceField(
         queryset=None,
@@ -222,8 +223,7 @@ class CustomerProductForm(forms.ModelForm):
 
     class Meta:
         model = Product
-        fields = ['name', 'description', 'product_manager', 'technical_contact', 'team_manager', 'prod_type',
-                  'authorized_users']
+        fields = ['name', 'description', 'authorized_users']
 
 
 class ImportScanForm(forms.Form):
@@ -245,8 +245,6 @@ class ImportScanForm(forms.Form):
     minimum_severity = forms.ChoiceField(help_text='Minimum severity level to be imported',
                                          required=True,
                                          choices=SEVERITY_CHOICES[0:4])
-    active = forms.BooleanField(help_text="Select if these findings are currently active.", required=False)
-    verified = forms.BooleanField(help_text="Select if these findings have been verified.", required=False)
     scan_type = forms.ChoiceField(required=True, choices=SCAN_TYPE_CHOICES)
 
     tags = forms.CharField(widget=forms.SelectMultiple(choices=[]),
@@ -455,13 +453,9 @@ class EngForm(forms.ModelForm):
         attrs={'class': 'datepicker'}))
     target_end = forms.DateField(widget=forms.TextInput(
         attrs={'class': 'datepicker'}))
-    threat_model = forms.BooleanField(required=False)
-    api_test = forms.BooleanField(required=False, label='API Test')
-    pen_test = forms.BooleanField(required=False)
-    lead = forms.ModelChoiceField(
-        queryset=User.objects.exclude(is_staff=False),
-        required=True, label="Testing Lead")
-    test_strategy = forms.URLField(required=False, label="Test Strategy URL")
+    analysts = forms.ModelMultipleChoiceField(
+        queryset=User.objects.filter(is_staff=True),
+        required=True)
 
     def is_valid(self):
         valid = super(EngForm, self).is_valid()
@@ -501,10 +495,6 @@ class EngForm2(forms.ModelForm):
         attrs={'class': 'datepicker'}))
     test_options = (('API', 'API Test'), ('Static', 'Static Check'),
                     ('Pen', 'Pen Test'), ('Web App', 'Web Application Test'))
-    lead = forms.ModelChoiceField(
-        queryset=User.objects.exclude(is_staff=False),
-        required=True, label="Testing Lead")
-    test_strategy = forms.URLField(required=False, label="Test Strategy URL")
 
     def __init__(self, *args, **kwargs):
         tags = Tag.objects.usage_for_model(Engagement)
@@ -539,26 +529,15 @@ class DeleteEngagementForm(forms.ModelForm):
         exclude = ['name', 'version', 'eng_type', 'first_contacted', 'target_start',
                    'target_end', 'lead', 'requester', 'reason', 'report_type',
                    'product', 'test_strategy', 'threat_model', 'api_test', 'pen_test',
-                   'check_list', 'status']
+                   'check_list', 'status', 'analysts', 'hours', 'description']
 
 
 class TestForm(forms.ModelForm):
     test_type = forms.ModelChoiceField(queryset=Test_Type.objects.all().order_by('name'))
-    environment = forms.ModelChoiceField(
-        queryset=Development_Environment.objects.all().order_by('name'))
-    # credential = forms.ModelChoiceField(Cred_User.objects.all(), required=False)
-    target_start = forms.DateTimeField(widget=forms.TextInput(
-        attrs={'class': 'datepicker'}))
-    target_end = forms.DateTimeField(widget=forms.TextInput(
-        attrs={'class': 'datepicker'}))
     tags = forms.CharField(widget=forms.SelectMultiple(choices=[]),
                            required=False,
                            help_text="Add tags that help describe this test.  "
                                      "Choose from the list or add new tags.  Press TAB key to add.")
-    lead = forms.ModelChoiceField(
-        queryset=User.objects.exclude(is_staff=False),
-        required=False, label="Testing Lead")
-
     def __init__(self, *args, **kwargs):
         tags = Tag.objects.usage_for_model(Test)
         t = [(tag.name, tag.name) for tag in tags]
@@ -567,7 +546,7 @@ class TestForm(forms.ModelForm):
 
     class Meta:
         model = Test
-        fields = ['test_type', 'target_start', 'target_end', 'environment', 'percent_complete', 'tags', 'lead']
+        fields = ['test_type', 'tags']
 
 
 class DeleteTestForm(forms.ModelForm):
@@ -803,17 +782,11 @@ class DeleteFindingTemplateForm(forms.ModelForm):
 class FindingBulkUpdateForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super(FindingBulkUpdateForm, self).clean()
-        if (cleaned_data['active'] or cleaned_data['verified']) and cleaned_data['duplicate']:
-            raise forms.ValidationError('Duplicate findings cannot be'
-                                        ' verified or active')
-        if cleaned_data['false_p'] and cleaned_data['verified']:
-            raise forms.ValidationError('False positive findings cannot '
-                                        'be verified.')
         return cleaned_data
 
     class Meta:
         model = Finding
-        fields = ('severity', 'active', 'verified', 'false_p', 'duplicate', 'out_of_scope')
+        fields = ('severity', 'verified', 'false_p', 'duplicate', 'out_of_scope')
 
 
 class EditEndpointForm(forms.ModelForm):
@@ -1014,7 +987,9 @@ class DeleteEndpointForm(forms.ModelForm):
                    'path',
                    'query',
                    'fragment',
-                   'product')
+                   'product',
+                   'fqdn',
+                   'port')
 
 
 class EndpointMetaDataForm(forms.ModelForm):
@@ -1075,7 +1050,7 @@ class ClearFindingReviewForm(forms.ModelForm):
 
     class Meta:
         model = Finding
-        fields = ['active', 'verified', 'false_p', 'out_of_scope', 'duplicate']
+        fields = ['verified', 'false_p', 'out_of_scope', 'duplicate']
 
 
 class ReviewFindingForm(forms.Form):
