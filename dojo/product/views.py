@@ -111,10 +111,6 @@ def view_product(request, pid):
 
     tests = Test.objects.filter(engagement__product=prod)
 
-    # risk_acceptances = Risk_Acceptance.objects.filter(engagement__in=Engagement.objects.filter(product=prod))
-
-    # accepted_findings = [finding for ra in risk_acceptances
-    #                      for finding in ra.accepted_findings.all()]
 
     verified_findings = Finding.objects.filter(test__engagement__product=prod,
                                                date__range=[start_date, end_date],
@@ -217,17 +213,6 @@ def view_product(request, pid):
             else:
                 medium_weekly[x] = {'count': 1, 'week': y}
 
-    # for a in accepted_findings:
-    #     iso_cal = a.date.isocalendar()
-    #     x = iso_to_gregorian(iso_cal[0], iso_cal[1], 1)
-    #     y = x.strftime("<span class='small'>%m/%d<br/>%Y</span>")
-    #     x = (tcalendar.timegm(x.timetuple()) * 1000)
-
-    #     if x in open_close_weekly:
-    #         open_close_weekly[x]['accepted'] += 1
-    #     else:
-    #         open_close_weekly[x] = {'closed': 0, 'open': 0, 'accepted': 1}
-    #         open_close_weekly[x]['week'] = y
 
     test_data = {}
     for t in tests:
@@ -248,7 +233,6 @@ def view_product(request, pid):
                    'verified_findings': verified_findings,
                    'open_findings': open_findings,
                    'closed_findings': closed_findings,
-#                   'accepted_findings': accepted_findings,
                    'new_findings': new_verified_findings,
                    'start_date': start_date,
                    'punchcard': punchcard,
@@ -440,10 +424,6 @@ def new_eng_for_app(request, pid):
         if form.is_valid():
             new_eng = form.save(commit=False)
             new_eng.product = prod
-            # if new_eng.threat_model:
-            #     new_eng.progress = 'threat_model'
-            # else:
-            #     new_eng.progress = 'other'
             new_eng.save()
             form.save_m2m()
             if get_system_setting('enable_jira'):
