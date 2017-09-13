@@ -99,9 +99,13 @@ def alerts_json(request, limit=None):
 
 
 def alertcount(request):
-    count = Alerts.objects.filter(user_id=request.user).count()
+    count = Alerts.objects.filter(user=request.user,read=False).count()
     return JsonResponse({'count':count})
 
+
+def clearalerts(request):
+    Alerts.objects.filter(user=request.user).update(read=True)
+    return HttpResponse(status=204)
 
 def view_profile(request):
     user = get_object_or_404(Dojo_User, pk=request.user.id)
