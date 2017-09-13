@@ -132,14 +132,13 @@ def view_endpoint(request, eid):
 
     all_findings = Finding.objects.filter(endpoints__in=endpoints).distinct()
 
-    active_findings = Finding.objects.filter(endpoints__in=endpoints,
-                                             active=True,
+    verified_findings = Finding.objects.filter(endpoints__in=endpoints,
                                              verified=True).distinct()
 
     closed_findings = Finding.objects.filter(endpoints__in=endpoints,
                                              mitigated__isnull=False).distinct()
     if all_findings:
-        start_date = datetime.combine(all_findings.last().date, datetime.min.time())
+        start_date = timezone.make_aware(datetime.combine(all_findings.last().date, datetime.min.time()))
     else:
         start_date = timezone.now()
     end_date = timezone.now()
@@ -149,10 +148,10 @@ def view_endpoint(request, eid):
     # include current month
     months_between += 1
 
-    monthly_counts = get_period_counts(active_findings, all_findings, closed_findings, None, months_between, start_date,
+    monthly_counts = get_period_counts(verified_findings, all_findings, closed_findings, None, months_between, start_date,
                                        relative_delta='months')
 
-    paged_findings = get_page_items(request, active_findings, 25)
+    paged_findings = get_page_items(request, verified_findings, 25)
 
     add_breadcrumb(parent=endpoint, top_level=False, request=request)
     return render(request,
