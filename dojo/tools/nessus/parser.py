@@ -106,7 +106,6 @@ class NessusCSVParser(object):
                                              dat['plugin_output']
                     find = Finding(title=dat['title'],
                                    test=test,
-                                   active=False,
                                    verified=False, description=dat['description'],
                                    severity=dat['severity'],
                                    numerical_severity=Finding.get_numerical_severity(dat['severity']),
@@ -191,7 +190,6 @@ class NessusXMLParser(object):
                     else:
                         find = Finding(title=title,
                                        test=test,
-                                       active=False,
                                        verified=False,
                                        description=description,
                                        severity=severity,
@@ -202,9 +200,9 @@ class NessusXMLParser(object):
                                        cwe=cwe)
                         find.unsaved_endpoints = list()
                         dupes[dupe_key] = find
-                    find.unsaved_endpoints.append(Endpoint(host=ip + (":" + port if port is not None else "")))
+                    find.unsaved_endpoints.append(Endpoint(host=ip, port=port))
 
                     if fqdn is not None:
-                        find.unsaved_endpoints.append(Endpoint(host=fqdn))
+                        find.unsaved_endpoints.append(Endpoint(host=fqdn, port=port))
 
         self.items = dupes.values()
