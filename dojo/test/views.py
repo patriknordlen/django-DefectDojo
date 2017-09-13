@@ -42,8 +42,6 @@ def view_test(request, tid):
     person = request.user.username
     findings = Finding.objects.filter(test=test)
     stub_findings = Stub_Finding.objects.filter(test=test)
-    cred_test = Cred_Mapping.objects.filter(test=test).select_related('cred_id').order_by('cred_id')
-    creds = Cred_Mapping.objects.filter(engagement=test.engagement).select_related('cred_id').order_by('cred_id')
 
     if request.method == 'POST':
         form = NoteForm(request.POST)
@@ -69,6 +67,7 @@ def view_test(request, tid):
     show_re_upload = any(test.test_type.name in code for code in ImportScanForm.SCAN_TYPE_CHOICES)
 
     add_breadcrumb(parent=test, top_level=False, request=request)
+
     return render(request, 'dojo/view_test.html',
                   {'test': test,
                    'findings': fpage,
@@ -78,8 +77,6 @@ def view_test(request, tid):
                    'person': person,
                    'request': request,
                    'show_re_upload': show_re_upload,
-                   'creds': creds,
-                   'cred_test': cred_test
                    })
 
 
@@ -160,7 +157,6 @@ def delete_test_note(request, tid, nid):
 
 
 @user_passes_test(lambda u: u.is_staff)
-@cache_page(60 * 5)  # cache for 5 minutes
 def test_calendar(request):
     if not 'lead' in request.GET or '0' in request.GET.getlist('lead'):
         tests = Test.objects.all()
@@ -221,7 +217,7 @@ def add_findings(request, tid):
             new_finding.reporter = request.user
             new_finding.numerical_severity = Finding.get_numerical_severity(
                 new_finding.severity)
-            if new_finding.false_p or new_finding.active is False:
+            if new_finding.false_p:
                 new_finding.mitigated = timezone.now()
                 new_finding.mitigated_by = request.user
             create_template = new_finding.is_template
@@ -301,7 +297,7 @@ def add_temp_finding(request, tid, fid):
             new_finding.numerical_severity = Finding.get_numerical_severity(
                 new_finding.severity)
             new_finding.date = datetime.today()
-            if new_finding.false_p or new_finding.active is False:
+            if new_finding.false_p:
                 new_finding.mitigated = timezone.now()
                 new_finding.mitigated_by = request.user
 
@@ -413,7 +409,6 @@ def finding_bulk_update(request, tid):
             finding_to_update = request.POST.getlist('finding_to_update')
             finds = Finding.objects.filter(test=test, id__in=finding_to_update)
             finds.update(severity=form.cleaned_data['severity'],
-                         active=form.cleaned_data['active'],
                          verified=form.cleaned_data['verified'],
                          false_p=form.cleaned_data['false_p'],
                          duplicate=form.cleaned_data['duplicate'],
@@ -450,7 +445,6 @@ def re_import_scan_results(request, tid):
             min_sev = form.cleaned_data['minimum_severity']
             file = request.FILES['file']
             scan_type = t.test_type.name
-            active = form.cleaned_data['active']
             verified = form.cleaned_data['verified']
             tags = request.POST.getlist('tags')
             ts = ", ".join(tags)
@@ -496,7 +490,6 @@ def re_import_scan_results(request, tid):
                             # it was once fixed, but now back
                             find.mitigated = None
                             find.mitigated_by = None
-                            find.active = True
                             find.verified = verified
                             find.save()
                             note = Notes(entry="Re-activated by %s re-upload." % scan_type,
@@ -512,7 +505,6 @@ def re_import_scan_results(request, tid):
                         item.last_reviewed = timezone.now()
                         item.last_reviewed_by = request.user
                         item.verified = verified
-                        item.active = active
                         item.save()
                         finding_added_count += 1
                         new_items.append(item.id)
@@ -554,7 +546,6 @@ def re_import_scan_results(request, tid):
                     finding = Finding.objects.get(id=finding_id)
                     finding.mitigated = datetime.combine(scan_date, timezone.now().time())
                     finding.mitigated_by = request.user
-                    finding.active = False
                     finding.save()
                     note = Notes(entry="Mitigated by %s re-upload." % scan_type,
                                  author=request.user)
