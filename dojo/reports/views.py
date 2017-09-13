@@ -49,8 +49,7 @@ def report_builder(request):
     add_breadcrumb(title="Report Builder", top_level=True, request=request)
     findings = Finding.objects.all()
     findings = ReportAuthedFindingFilter(request.GET, queryset=findings, user=request.user)
-    endpoints = Endpoint.objects.filter(finding__active=True,
-                                        finding__verified=True,
+    endpoints = Endpoint.objects.filter(finding__verified=True,
                                         finding__false_p=False,
                                         finding__duplicate=False,
                                         finding__out_of_scope=False,
@@ -145,8 +144,8 @@ def report_findings(request):
     paged_findings = get_page_items(request, findings.qs, 25)
 
     customer = None
-    if 'test__engagement__product__prod_type' in request.GET:
-        p = request.GET.getlist('test__engagement__product__prod_type', [])
+    if 'test__engagement__product__customer' in request.GET:
+        p = request.GET.getlist('test__engagement__product__customer', [])
         if len(p) == 1:
             customer = get_object_or_404(Customer, id=p[0])
 
@@ -161,8 +160,7 @@ def report_findings(request):
 
 def report_endpoints(request):
     user = Dojo_User.objects.get(id=request.user.id)
-    endpoints = Endpoint.objects.filter(finding__active=True,
-                                        finding__verified=True,
+    endpoints = Endpoint.objects.filter(finding__verified=True,
                                         finding__false_p=False,
                                         finding__duplicate=False,
                                         finding__out_of_scope=False,
@@ -375,7 +373,6 @@ def product_endpoint_report(request, pid):
     user = Dojo_User.objects.get(id=request.user.id)
     product = get_object_or_404(Product, id=pid)
     endpoints = Endpoint.objects.filter(product=product,
-                                        finding__active=True,
                                         finding__verified=True,
                                         finding__false_p=False,
                                         finding__duplicate=False,
@@ -435,7 +432,6 @@ def product_endpoint_report(request, pid):
                                            verified=True,
                                            duplicate=False,
                                            out_of_scope=False,
-                                           active=True,
                                            mitigated__isnull=True)
 
     closed_findings = Finding.objects.filter(endpoints__in=endpoints.qs,
@@ -578,14 +574,14 @@ def generate_report(request, obj):
         report_subtitle = str(customer)
 
         findings = ReportFindingFilter(request.GET, queryset=Finding.objects.filter(
-            test__engagement__product__prod_type=customer).distinct().prefetch_related('test',
+            test__engagement__product__customer=customer).distinct().prefetch_related('test',
                                                                                            'test__engagement__product',
-                                                                                           'test__engagement__product__prod_type'))
-        products = Product.objects.filter(prod_type=customer,
+                                                                                           'test__engagement__product__customer'))
+        products = Product.objects.filter(customer=customer,
                                           engagement__test__finding__in=findings.qs).distinct()
-        engagements = Engagement.objects.filter(product__prod_type=customer,
+        engagements = Engagement.objects.filter(product__customer=customer,
                                                 test__finding__in=findings.qs).distinct()
-        tests = Test.objects.filter(engagement__product__prod_type=customer,
+        tests = Test.objects.filter(engagement__product__customer=customer,
                                     finding__in=findings.qs).distinct()
         if findings:
             start_date = datetime.combine(findings.qs.last().date, datetime.min.time())
@@ -632,7 +628,7 @@ def generate_report(request, obj):
         findings = ReportFindingFilter(request.GET, queryset=Finding.objects.filter(
             test__engagement__product=product).distinct().prefetch_related('test',
                                                                            'test__engagement__product',
-                                                                           'test__engagement__product__prod_type'))
+                                                                           'test__engagement__product__customer'))
         ids = set(finding.id for finding in findings.qs)
         engagements = Engagement.objects.filter(test__finding__id__in=ids).distinct()
         tests = Test.objects.filter(finding__id__in=ids).distinct()
@@ -658,7 +654,7 @@ def generate_report(request, obj):
                                        queryset=Finding.objects.filter(test__engagement=engagement,
                                                                        ).prefetch_related('test',
                                                                                           'test__engagement__product',
-                                                                                          'test__engagement__product__prod_type').distinct())
+                                                                                          'test__engagement__product__customer').distinct())
         report_name = "Engagement Report: " + str(engagement)
         filename = "engagement_finding_report.pdf"
         template = 'dojo/engagement_pdf_report.html'
@@ -687,7 +683,7 @@ def generate_report(request, obj):
         findings = ReportFindingFilter(request.GET,
                                        queryset=Finding.objects.filter(test=test).prefetch_related('test',
                                                                                                    'test__engagement__product',
-                                                                                                   'test__engagement__product__prod_type').distinct())
+                                                                                                   'test__engagement__product__customer').distinct())
         filename = "test_finding_report.pdf"
         template = "dojo/test_pdf_report.html"
         report_name = "Test Report: " + str(test)
@@ -722,7 +718,7 @@ def generate_report(request, obj):
                                        queryset=Finding.objects.filter(endpoints__in=endpoints,
                                                                        ).prefetch_related('test',
                                                                                           'test__engagement__product',
-                                                                                          'test__engagement__product__prod_type').distinct())
+                                                                                          'test__engagement__product__customer').distinct())
 
         context = {'endpoint': endpoint,
                    'endpoints': endpoints,
@@ -741,7 +737,7 @@ def generate_report(request, obj):
         findings = ReportAuthedFindingFilter(request.GET,
                                              queryset=obj.prefetch_related('test',
                                                                            'test__engagement__product',
-                                                                           'test__engagement__product__prod_type').distinct(),
+                                                                           'test__engagement__product__customer').distinct(),
                                              user=request.user)
         filename = "finding_report.pdf"
         report_name = 'Finding'
