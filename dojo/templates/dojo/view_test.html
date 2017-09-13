@@ -11,7 +11,7 @@
     <div class="panel panel-default">
         <div class="panel-heading">
             <div class="clearfix">
-                <h3 class="pull-left"> {{ test.test_type }}
+                <h3 class="pull-left"> {{ test.test_type }} for <a href="{% url 'view_engagement' test.engagement.id %}">{{ test.engagement }}</a>
                 {% if test.tags %}
                     <sup>
                         {% for tag in test.tags %}
@@ -70,44 +70,6 @@
                 </div>
             </div>
         </div>
-        <div class="table-responsive">
-            <table class="table-striped table table-condensed table-hover centered">
-                <tr>
-                    <th>Environment</th>
-                    <th>Engagement</th>
-                    <th>Target Start Date</th>
-                    <th>Target End Date</th>
-                    {% if test.percent_complete > 0 %}
-                        <th>Progress</th>
-                    {% endif %}
-
-                </tr>
-                <tr>
-                    <td>
-                        {% if test.environment %}
-                            {{ test.environment }}
-                        {% else %}
-                            <b><i>Unknown</i></b>
-                        {% endif %}
-                    </td>
-                    <td><a href="{% url 'view_engagement' test.engagement.id %}">{{ test.engagement }}</a></td>
-                    <td>{{ test.target_start.date }}</td>
-                    <td>{{ test.target_end.date }}</td>
-                    {% if test.percent_complete > 0 %}
-                        <td>
-                            <div class="progress">
-                                <div class="progress-bar" role="progressbar" aria-valuenow="{{ test.percent_complete }}"
-                                     aria-valuemin="0"
-                                     aria-valuemax="100" style="width: {{ test.percent_complete }}%;">
-                                    {{ test.percent_complete }}%
-                                </div>
-                            </div>
-                        </td>
-                    {% endif %}
-
-                </tr>
-            </table>
-        </div>
     </div>
     <div class="panel panel-default to_highlight table-responsive">
         <div class="panel-heading">
@@ -135,9 +97,7 @@
                                     <option value="Critical">Critical</option>
                                 </select><br/><br/>
                                 <b>Status</b><br/>
-                                <label style="font-size: 80%; font-weight: normal; display: block">
                                     <input id="id_active" name="active" type="checkbox"/> <span>Active</span>
-                                </label>
                                 <label style="font-size: 80%; font-weight: normal; display: block">
                                     <input id="id_verified" name="verified" type="checkbox"/> <span>Verified</span>
                                 </label>
@@ -210,10 +170,8 @@
                     </th>
                     <th>Name</th>
                     <th>Reporter</th>
-                    <th>Mitigation Date</th>
                     <th>Severity</th>
                     <th>Verified</th>
-                    <th>Active</th>
                     <th>Duplicate</th>
                     {% if "enable_jira"|get_system_setting %}
                     <th>Jira</th>
@@ -240,14 +198,12 @@
                           {% endif %}
                         </td>
                         <td>{{ finding.reporter.username }}</td>
-                        <td>{{ finding.mitigated }}</td>
                         <td>
                             <span class="label severity severity-{{ finding.severity }}">
                                 {{ finding.severity_display }}
                             </span>
                         </td>
                         <td>{{ finding.verified }}</td>
-                        <td>{{ finding.active }}</td>
                         <td>{{ finding.duplicate }}</td>
                         {% if "enable_jira"|get_system_setting %}
                         <td>
