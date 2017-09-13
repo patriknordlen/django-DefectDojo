@@ -109,13 +109,13 @@ class Customer(models.Model):
             return True
 
     def high_present(self):
-        c_findings = Finding.objects.filter(test__engagement__product__prod_type=self, severity='High')
+        c_findings = Finding.objects.filter(test__engagement__product__customer=self, severity='High')
         if c_findings.count() > 0:
             return True
 
     def calc_health(self):
-        h_findings = Finding.objects.filter(test__engagement__product__prod_type=self, severity='High')
-        c_findings = Finding.objects.filter(test__engagement__product__prod_type=self, severity='Critical')
+        h_findings = Finding.objects.filter(test__engagement__product__customer=self, severity='High')
+        c_findings = Finding.objects.filter(test__engagement__product__customer=self, severity='Critical')
         health = 100
         if c_findings.count() > 0:
             health = 40
@@ -135,13 +135,13 @@ class Customer(models.Model):
                                       false_p=False,
                                       duplicate=False,
                                       out_of_scope=False,
-                                      test__engagement__product__prod_type=self).filter(Q(severity="Critical") |
+                                      test__engagement__product__customer=self).filter(Q(severity="Critical") |
                                                                                         Q(severity="High") |
                                                                                         Q(severity="Medium") |
                                                                                         Q(severity="Low")).count()
 
     def products_count(self):
-        return Product.objects.filter(prod_type=self).count()
+        return Product.objects.filter(customer=self).count()
 
     def __unicode__(self):
         return self.name
@@ -151,6 +151,16 @@ class Customer(models.Model):
                'url': reverse('edit_customer', args=(self.id,))}]
         return bc
 
+
+class Contact(models.Model):
+    name = models.CharField(max_length=100)
+    role = models.CharField(max_length=100, null=True)
+    phone = models.CharField(max_length=100, null=True)
+    email = models.EmailField()
+    customer = models.ForeignKey(Customer)
+    # is_admin = models.BooleanField(default=False)
+    # is_globally_read_only = models.BooleanField(default=False)
+    # updated = models.DateTimeField(editable=False)
 
 class Product_Line(models.Model):
     name = models.CharField(max_length=300)
@@ -196,7 +206,7 @@ class Product(models.Model):
     team_manager = models.ForeignKey(Dojo_User, null=True, blank=True, related_name='team_manager')
 
     created = models.DateTimeField(editable=False, null=True, blank=True)
-    prod_type = models.ForeignKey(Customer, related_name='prod_type',
+    customer = models.ForeignKey(Customer, related_name='customer',
                                   null=True, blank=True)
     updated = models.DateTimeField(editable=False, null=True, blank=True)
     tid = models.IntegerField(default=0, editable=False)
@@ -220,7 +230,7 @@ class Product(models.Model):
     @property
     def endpoint_count(self):
         endpoints = Endpoint.objects.filter(finding__test__engagement__product=self,
-                                            finding__active=True,
+                                            # finding__active=True,
                                             finding__verified=True,
                                             finding__mitigated__isnull=True)
 
@@ -366,33 +376,18 @@ class Engagement(models.Model):
     first_contacted = models.DateField(null=True, blank=True)
     target_start = models.DateField(null=False, blank=False)
     target_end = models.DateField(null=False, blank=False)
-    lead = models.ForeignKey(User, editable=True, null=True)
-    requester = models.ForeignKey(Contact, null=True, blank=True)
-    reason = models.CharField(max_length=2000, null=True, blank=True)
+    analysts = models.ManyToManyField(User, editable=True)
+    hours = models.IntegerField(null=False)
     report_type = models.ForeignKey(Report_Type, null=True, blank=True)
     product = models.ForeignKey(Product)
     updated = models.DateTimeField(editable=False, null=True, blank=True)
     active = models.BooleanField(default=True, editable=False)
-    test_strategy = models.URLField(editable=True, blank=True, null=True)
-    threat_model = models.BooleanField(default=True)
-    api_test = models.BooleanField(default=True)
-    pen_test = models.BooleanField(default=True)
-    check_list = models.BooleanField(default=True)
     status = models.CharField(editable=True, max_length=2000, default='',
                               null=True,
-                              choices=(('In Progress', 'In Progress'),
+                              choices=(('Planned', 'Planned'),
+                                       ('In Progress', 'In Progress'),
                                        ('On Hold', 'On Hold'),
                                        ('Completed', 'Completed')))
-    progress = models.CharField(max_length=100,
-                                default='threat_model', editable=False)
-    tmodel_path = models.CharField(max_length=1000, default='none',
-                                   editable=False, blank=True, null=True)
-    risk_path = models.CharField(max_length=1000, default='none',
-                                 editable=False, blank=True, null=True)
-    risk_acceptance = models.ManyToManyField("Risk_Acceptance",
-                                             default=None,
-                                             editable=False,
-                                             blank=True)
     done_testing = models.BooleanField(default=False, editable=False)
 
     class Meta:
@@ -479,7 +474,6 @@ class Endpoint(models.Model):
                                             product=self.product).distinct()
 
         findings = Finding.objects.filter(endpoints__in=endpoints,
-                                          active=True,
                                           verified=True,
                                           out_of_scope=False).distinct()
 
@@ -540,22 +534,12 @@ class Development_Environment(models.Model):
 
 class Test(models.Model):
     engagement = models.ForeignKey(Engagement, editable=False)
-    lead = models.ForeignKey(User, editable=True, null=True)
     test_type = models.ForeignKey(Test_Type)
-    target_start = models.DateTimeField()
-    target_end = models.DateTimeField()
-    estimated_time = models.TimeField(null=True, blank=True, editable=False)
-    actual_time = models.TimeField(null=True, blank=True, editable=False, )
-    percent_complete = models.IntegerField(null=True, blank=True,
-                                           editable=True)
     notes = models.ManyToManyField(Notes, blank=True,
                                    editable=False)
-    environment = models.ForeignKey(Development_Environment, null=True,
-                                    blank=False)
 
     def __unicode__(self):
-        return "%s (%s)" % (self.test_type,
-                            self.target_start.strftime("%b %d, %Y"))
+        return '%s' % self.test_type
 
     def get_breadcrumbs(self):
         bc = self.engagement.get_breadcrumbs()
@@ -574,6 +558,23 @@ class VA(models.Model):
     status = models.BooleanField(default=False, editable=False)
     start = models.CharField(max_length=100)
 
+class CVSSv2_Score(models.Model):
+    # Exploitability
+    access_vector = models.CharField(max_length=2,
+                                     choices=(('L','Local'),('AN','Adjacent Network'),('N','Network')))
+    access_complexity = models.CharField(max_length=1,
+                                     choices=(('H','High'),('M','Medium'),('L','Low')))
+    authentication = models.CharField(max_length=1,
+                                     choices=(('M','Multiple'),('S','Single'),('N','None')))
+
+    # Impact
+    confidentiality_impact = models.CharField(max_length=1,
+                                     choices=(('N','None'),('P','Partial'),('C','Complete')))
+    integrity_impact = models.CharField(max_length=1,
+                                     choices=(('N','None'),('P','Partial'),('C','Complete')))
+    availability_impact = models.CharField(max_length=1,
+                                     choices=(('N','None'),('P','Partial'),('C','Complete')))
+
 
 class Finding(models.Model):
     title = models.TextField(max_length=1000)
@@ -591,9 +592,10 @@ class Finding(models.Model):
     unsaved_tags = None
     references = models.TextField(null=True, blank=True, db_column="refs")
     test = models.ForeignKey(Test, editable=False)
+    # PN TODO! Actually implement this.
+    # cvss_score = models.ManyToManyField(CVSSv2_Score)
     # TODO: Will be deprecated soon
     is_template = models.BooleanField(default=False)
-    active = models.BooleanField(default=True)
     verified = models.BooleanField(default=True)
     false_p = models.BooleanField(default=False, verbose_name="False Positive")
     duplicate = models.BooleanField(default=False)
@@ -641,10 +643,6 @@ class Finding(models.Model):
 
     def status(self):
         status = []
-        if self.active:
-            status += ['Active']
-        else:
-            status += ['Inactive']
         if self.verified:
             status += ['Verified']
         if self.mitigated:
@@ -1089,8 +1087,9 @@ class Alerts(models.Model):
     url =  models.URLField(max_length=2000, null=True)
     source = models.CharField(max_length=100, default='Generic')
     icon = models.CharField(max_length=25, default='icon-user-check')
-    user_id = models.ForeignKey(User, null=True, editable=False)
+    user = models.ForeignKey(User, null=True, editable=False)
     created = models.DateTimeField(null=False, editable=False, default=now)
+    read = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['-created']
