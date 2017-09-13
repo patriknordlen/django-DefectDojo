@@ -96,13 +96,6 @@ class UserContactInfo(models.Model):
     hipchat_username = models.CharField(blank=True, null=True, max_length=150)
 
 
-class Contact(models.Model):
-    name = models.CharField(max_length=100)
-    email = models.EmailField()
-    team = models.CharField(max_length=100)
-    is_admin = models.BooleanField(default=False)
-    is_globally_read_only = models.BooleanField(default=False)
-    updated = models.DateTimeField(editable=False)
 
 
 class Customer(models.Model):

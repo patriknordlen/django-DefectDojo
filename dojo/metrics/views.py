@@ -59,7 +59,7 @@ def metrics(request, mtype):
     findings = Finding.objects.filter(verified=True,
                                       severity__in=('Critical', 'High', 'Medium', 'Low', 'Info')).prefetch_related(
         'test__engagement__product',
-        'test__engagement__product__prod_type',
+        'test__engagement__product__customer',
         'test__engagement__risk_acceptance',
         'risk_acceptance_set',
         'reporter').extra(
@@ -75,7 +75,7 @@ def metrics(request, mtype):
     active_findings = Finding.objects.filter(verified=True, active=True,
                                       severity__in=('Critical', 'High', 'Medium', 'Low', 'Info')).prefetch_related(
         'test__engagement__product',
-        'test__engagement__product__prod_type',
+        'test__engagement__product__customer',
         'test__engagement__risk_acceptance',
         'risk_acceptance_set',
         'reporter').extra(
@@ -92,16 +92,16 @@ def metrics(request, mtype):
     if mtype != 'All':
         pt = Customer.objects.filter(id=mtype)
         request.GET._mutable = True
-        request.GET.appendlist('test__engagement__product__prod_type', mtype)
+        request.GET.appendlist('test__engagement__product__customer', mtype)
         request.GET._mutable = False
         mtype = pt[0].name
         show_pt_filter = False
         page_name = '%s Metrics' % mtype
-        prod_type = pt
-    elif 'test__engagement__product__prod_type' in request.GET:
-        prod_type = Customer.objects.filter(id__in=request.GET.getlist('test__engagement__product__prod_type', []))
+        customer = pt
+    elif 'test__engagement__product__customer' in request.GET:
+        customer = Customer.objects.filter(id__in=request.GET.getlist('test__engagement__product__customer', []))
     else:
-        prod_type = Customer.objects.all()
+        customer = Customer.objects.all()
     findings = MetricsFindingFilter(request.GET, queryset=findings)
     active_findings = MetricsFindingFilter(request.GET, queryset=active_findings)
 
@@ -117,16 +117,16 @@ def metrics(request, mtype):
                         end_date.month, end_date.day,
                         tzinfo=timezone.get_current_timezone())
 
-    if len(prod_type) > 0:
+    if len(customer) > 0:
         findings_closed = Finding.objects.filter(mitigated__range=[start_date, end_date],
-                                                 test__engagement__product__prod_type__in=prod_type).prefetch_related(
+                                                 test__engagement__product__customer__in=customer).prefetch_related(
             'test__engagement__product')
         # capture the accepted findings in period
         accepted_findings = Finding.objects.filter(risk_acceptance__created__range=[start_date, end_date],
-                                                   test__engagement__product__prod_type__in=prod_type). \
+                                                   test__engagement__product__customer__in=customer). \
             prefetch_related('test__engagement__product')
         accepted_findings_counts = Finding.objects.filter(risk_acceptance__created__range=[start_date, end_date],
-                                                          test__engagement__product__prod_type__in=prod_type). \
+                                                          test__engagement__product__customer__in=customer). \
             prefetch_related('test__engagement__product').aggregate(
             total=Sum(
                 Case(When(severity__in=('Critical', 'High', 'Medium', 'Low'),
@@ -207,7 +207,7 @@ def metrics(request, mtype):
                                      engagement__test__finding__mitigated__isnull=True,
                                      engagement__test__finding__severity__in=(
                                          'Critical', 'High', 'Medium', 'Low'),
-                                     prod_type__in=prod_type).annotate(
+                                     customer__in=customer).annotate(
         critical=Sum(
             Case(When(engagement__test__finding__severity='Critical', then=Value(1)),
                  output_field=IntegerField())
@@ -358,7 +358,7 @@ def simple_metrics(request):
         total_opened = []
         findings_broken_out = {}
 
-        total = Finding.objects.filter(test__engagement__product__prod_type=pt,
+        total = Finding.objects.filter(test__engagement__product__customer=pt,
                                        verified=True,
                                        false_p=False,
                                        duplicate=False,
@@ -458,12 +458,12 @@ def customer_counts(request):
             opened_in_period_list.append(oip)
 
             closed_in_period = Finding.objects.filter(mitigated__range=[start_date, end_date],
-                                                      test__engagement__product__prod_type=pt,
+                                                      test__engagement__product__customer=pt,
                                                       severity__in=('Critical', 'High', 'Medium', 'Low')).values(
                 'numerical_severity').annotate(Count('numerical_severity')).order_by('numerical_severity')
 
             total_closed_in_period = Finding.objects.filter(mitigated__range=[start_date, end_date],
-                                                            test__engagement__product__prod_type=pt,
+                                                            test__engagement__product__customer=pt,
                                                             severity__in=(
                                                                 'Critical', 'High', 'Medium', 'Low')).aggregate(
                 total=Sum(
@@ -477,7 +477,7 @@ def customer_counts(request):
                                                    duplicate=False,
                                                    out_of_scope=False,
                                                    mitigated__isnull=True,
-                                                   test__engagement__product__prod_type=pt,
+                                                   test__engagement__product__customer=pt,
                                                    severity__in=('Critical', 'High', 'Medium', 'Low')).values(
                 'numerical_severity').annotate(Count('numerical_severity')).order_by('numerical_severity')
 
@@ -487,7 +487,7 @@ def customer_counts(request):
                                                          duplicate=False,
                                                          out_of_scope=False,
                                                          mitigated__isnull=True,
-                                                         test__engagement__product__prod_type=pt,
+                                                         test__engagement__product__customer=pt,
                                                          severity__in=('Critical', 'High', 'Medium', 'Low')).aggregate(
                 total=Sum(
                     Case(When(severity__in=('Critical', 'High', 'Medium', 'Low'),
@@ -500,11 +500,11 @@ def customer_counts(request):
                                                        duplicate=False,
                                                        out_of_scope=False,
                                                        mitigated__isnull=True,
-                                                       test__engagement__product__prod_type=pt,
+                                                       test__engagement__product__customer=pt,
                                                        severity__in=(
                                                            'Critical', 'High', 'Medium', 'Low')).prefetch_related(
                 'test__engagement__product',
-                'test__engagement__product__prod_type',
+                'test__engagement__product__customer',
                 'test__engagement__risk_acceptance',
                 'reporter').order_by(
                 'numerical_severity')
@@ -517,7 +517,7 @@ def customer_counts(request):
                                              engagement__test__finding__mitigated__isnull=True,
                                              engagement__test__finding__severity__in=(
                                                  'Critical', 'High', 'Medium', 'Low'),
-                                             prod_type=pt).annotate(
+                                             customer=pt).annotate(
                 critical=Sum(
                     Case(When(engagement__test__finding__severity='Critical', then=Value(1)),
                          output_field=IntegerField())
@@ -855,7 +855,7 @@ def view_engineer(request, eid):
 
     details = []
     for find in open_findings:
-        team = find.test.engagement.product.prod_type.name
+        team = find.test.engagement.product.customer.name
         name = find.test.engagement.product.name
         severity = find.severity
         description = find.title

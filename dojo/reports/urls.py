@@ -6,7 +6,7 @@ urlpatterns = [
     #  reports
     url(r'^reports$',
         views.reports, name='reports'),
-    url(r'^product/type/(?P<ptid>\d+)/report$',
+    url(r'^customers/(?P<ptid>\d+)/report$',
         views.customer_report, name='customer_report'),
     url(r'^product/(?P<pid>\d+)/report$',
         views.product_report, name='product_report'),

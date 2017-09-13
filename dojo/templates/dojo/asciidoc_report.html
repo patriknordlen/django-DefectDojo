@@ -25,7 +25,7 @@
         <h3>== Executive Summary ==</h3>
         <p>
             {% if customer %}
-                {% for prod in customer.prod_type.all %}
+                {% for prod in customer.customer.all %}
                     <h4>=== {{ prod.name }} ===</h4><br>
 
                     {% if prod.engagement_set.all %}

@@ -53,7 +53,7 @@
                     {% if caltype == 'tests' %}
                         {% for t in tests %}
                             {
-                                title: '{{t.engagement.product.name}}: {{ t.engagement.name|default:"Unknown" }} - {{ t.test_type }} ({{ t.lead|default:"Unassigned" }})',
+                                title: '{{t.engagement.product}}: {{ t.engagement.name|default:"Unknown" }} - {{ t.test_type }} ({{ t.lead|default:"Unassigned" }})',
                                 start: '{{t.target_start|date:"c"}}',
                                 end: '{{t.target_end|date:"c"}}',
                                 url: '{% url 'view_test' t.id %}',
@@ -64,7 +64,7 @@
                     {% else %}
                         {% for e in engagements %}
                             {
-                                title: '{{e.product.name}}: {{ e.name|default:"Unknown" }} ({{ e.lead|default:"Unassigned" }})',
+                                title: '{{e.product.name}}: {{ e.name|default:"Unknown" }} ({% if e.analysts %} {% for a in e.analysts.all %} {{ a }} {% endfor %} {% else %} Unassigned {% endif %})',
                                 start: '{{e.target_start|date:"c"}}',
                                 end: '{{e.target_end|date:"c"}}',
                                 url: '{% url 'view_engagement' e.id %}',

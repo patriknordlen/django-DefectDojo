@@ -74,8 +74,8 @@ def open_findings(request):
     paged_findings = get_page_items(request, findings.qs, 25)
 
     customer = None
-    if 'test__engagement__product__prod_type' in request.GET:
-        p = request.GET.getlist('test__engagement__product__prod_type', [])
+    if 'test__engagement__product__customer' in request.GET:
+        p = request.GET.getlist('test__engagement__product__customer', [])
         if len(p) == 1:
             customer = get_object_or_404(Customer, id=p[0])
 

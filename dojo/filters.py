@@ -252,10 +252,6 @@ class MetricsDateRangeFilter(ChoiceFilter):
 
 
 class EngagementFilter(DojoFilter):
-    engagement__lead = ModelChoiceFilter(
-        queryset=User.objects.filter(
-            engagement__lead__isnull=False).distinct(),
-        label="Lead")
     name = CharFilter(lookup_expr='icontains')
     prod_type = ModelMultipleChoiceFilter(
         queryset=Customer.objects.all().order_by('name'),

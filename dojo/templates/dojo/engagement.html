@@ -41,7 +41,7 @@
                            class="tablesorter-bootstrap table table-bordered table-condensed table-striped table-hover">
                         <tr>
                             <th class="prod_name">{% dojo_sort request 'Product' 'name' 'asc' %}</th>
-                            <th class="prod_name">{% dojo_sort request 'Customer' 'prod_type__name' %}</th>
+                            <th class="prod_name">{% dojo_sort request 'Customer' 'customer__name' %}</th>
                             <th>Active Engagements</th>
                         </tr>
 
@@ -55,7 +55,7 @@
                                   </sup>
                                 </td>
                                 <td class="prod_name"><a
-                                        href="{% url 'customer_metrics' p.prod_type.id %}">{{ p.prod_type.name }}</a>
+                                        href="{% url 'customer_metrics' p.customer.id %}">{{ p.customer.name }}</a>
                                 </td>
                                 <td>
                                     {% for e in p.engagement_set.all %}
