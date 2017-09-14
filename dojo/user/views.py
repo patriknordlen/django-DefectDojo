@@ -268,7 +268,7 @@ def edit_user(request, uid):
                                  extra_tags='alert-danger')
     add_breadcrumb(title="Edit User", top_level=False, request=request)
     return render(request, "dojo/add_user.html", {
-        'name': 'Edit User',
+        'name': 'Save User',
         'form': form,
         'contact_form': contact_form,
         'to_edit': user})
