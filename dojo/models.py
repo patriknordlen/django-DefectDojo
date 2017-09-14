@@ -363,6 +363,15 @@ class IPScan(models.Model):
     services = models.CharField(max_length=800, null=True)
     scan = models.ForeignKey(Scan, default=1, editable=False)
 
+class Development_Environment(models.Model):
+    name = models.CharField(max_length=200)
+
+    def __unicode__(self):
+        return self.name
+
+    def get_breadcrumbs(self):
+        return [{"title": self.__unicode__(), "url": reverse("edit_dev_env", args=(self.id,))}]
+
 
 class Engagement_Type(models.Model):
     name = models.CharField(max_length=200)
@@ -378,6 +387,7 @@ class Engagement(models.Model):
     target_end = models.DateField(null=False, blank=False)
     analysts = models.ManyToManyField(User, editable=True)
     hours = models.IntegerField(null=False)
+    environment = models.ForeignKey(Development_Environment, null=True)
     report_type = models.ForeignKey(Report_Type, null=True, blank=True)
     product = models.ForeignKey(Product)
     updated = models.DateTimeField(editable=False, null=True, blank=True)
@@ -520,16 +530,6 @@ class Notes(models.Model):
 
     def __unicode__(self):
         return self.entry
-
-
-class Development_Environment(models.Model):
-    name = models.CharField(max_length=200)
-
-    def __unicode__(self):
-        return self.name
-
-    def get_breadcrumbs(self):
-        return [{"title": self.__unicode__(), "url": reverse("edit_dev_env", args=(self.id,))}]
 
 
 class Test(models.Model):
