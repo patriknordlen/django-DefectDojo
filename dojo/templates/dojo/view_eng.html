@@ -101,6 +101,9 @@
                 </div>
             </div>
         </div>
+        <div class="panel-body description">
+            {{ eng.description }}
+        </div>
         <div class="panel-body product-graphs">
             <div class="col-md-3">
                 <div class="panel panel-default">
@@ -222,6 +225,7 @@
                         <p> Target Start Date: {{ eng.target_start }} </p>
                         <p> Target End Date: {{ eng.target_end }} </p>
                         <p> Hours: {{ eng.hours }}</p>
+                        <p> Environment: {{ eng.environment }}</p>
                         <p>Analysts:
                             {% for analyst in eng.analysts.all %}
                                 {{ analyst }}
@@ -230,44 +234,6 @@
                 </div>
             </div>
         </div>
-        <!-- <div id="test-strategy" class="col-md-4">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h4> Test Strategy </h4>
-                </div>
-                <div class="panel-body text-center">
-                    {% if eng.test_strategy %}
-                        <a class="btn btn-sm btn-primary" target="_blank" href="{{ eng.test_strategy }}"> View Test
-                            Strategy </a>
-                    {% else %}
-                        <p><b><i><sub><a class="" href="{% url 'edit_engagement' eng.id %}"> Edit </a> this
-                            engagement
-                            to
-                            add a
-                            test strategy.</sub></i></b></p>
-                    {% endif %}
-                </div>
-            </div>
-        </div> -->
-        <!-- <div id="threat-model" class="col-md-4">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h4> Threat Model </h4>
-                </div>
-                <div class="panel-body text-center">
-                    {% if threat != 'none' %}
-                        <div class="btn-group">
-                            <a class="btn btn-sm btn-primary" href="{% url 'view_threatmodel' eng.id %}"> Download
-                                Model</a>
-                            <a class="btn btn-sm btn-warning" href="{% url 'upload_threatmodel' eng.id %}"> Edit</a>
-                        </div>
-                    {% else %}
-                        <a class="btn btn-sm btn-primary" href="{% url 'upload_threatmodel' eng.id %}"> Upload
-                            Model</a>
-                    {% endif %}
-                </div>
-            </div>
-        </div> -->
     </div>
     {% if jissue and jconf %}
         <div class="row to_highlight">
@@ -365,19 +331,6 @@
 
         </div>
 
-    </div>
-
-    <div class="row">
-        <div class="col-md-12">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h4>Description</h4>
-                </div>
-                <div class="panel-body">
-                    {{ eng.description }}
-                </div>
-            </div>
-        </div>
     </div>
 
     <!--Cred Begin-->
