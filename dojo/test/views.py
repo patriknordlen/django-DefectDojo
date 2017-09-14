@@ -96,8 +96,6 @@ def edit_test(request, tid):
                                  'Test saved.',
                                  extra_tags='alert-success')
 
-    form.initial['target_start'] = test.target_start.date()
-    form.initial['target_end'] = test.target_end.date()
     form.initial['tags'] = [tag.name for tag in test.tags]
 
     add_breadcrumb(parent=test, title="Edit", top_level=False, request=request)
