@@ -17,6 +17,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
+from django.template.loader import render_to_string
 
 from dojo.filters import ProductFilter, ProductFindingFilter
 from dojo.forms import ProductForm, EngForm, DeleteProductForm, ProductMetaDataForm, JIRAPKeyForm, JIRAFindingForm, AdHocFindingForm
@@ -424,6 +425,7 @@ def new_eng_for_app(request, pid):
         if form.is_valid():
             new_eng = form.save(commit=False)
             new_eng.product = prod
+            new_eng.executive_summary = render_to_string('dojo/report_executive_summary.html',{'engagement':new_eng})
             new_eng.save()
             form.save_m2m()
             if get_system_setting('enable_jira'):
@@ -451,7 +453,7 @@ def new_eng_for_app(request, pid):
             else:
                 return HttpResponseRedirect(reverse('view_engagement', args=(new_eng.id,)))
     else:
-        form = EngForm(initial={})
+        form = EngForm()
         if(get_system_setting('enable_jira')):
                 if JIRA_PKey.objects.filter(product=prod).count() != 0:
                     jform = JIRAFindingForm(prefix='jiraform', enabled=JIRA_PKey.objects.get(product=prod).push_all_issues)
