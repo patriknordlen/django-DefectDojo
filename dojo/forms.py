@@ -22,6 +22,7 @@ from dojo.models import Finding, Customer, Product, ScanSettings, VA, \
     JIRA_Issue, JIRA_PKey, JIRA_Conf, UserContactInfo, Tool_Type, Tool_Configuration, Tool_Product_Settings, \
     Cred_User, Cred_Mapping, System_Settings, Notifications
 from dojo.utils import get_system_setting
+from tinymce.widgets import TinyMCE
 
 RE_DATE = re.compile(r'(\d{4})-(\d\d?)-(\d\d?)$')
 
@@ -473,7 +474,7 @@ class EngForm(forms.ModelForm):
         model = Engagement
         exclude = ('first_contacted', 'version', 'eng_type', 'real_start',
                    'real_end', 'requester', 'reason', 'updated', 'report_type',
-                   'product')
+                   'product', 'executive_summary')
 
 
 class EngForm2(forms.ModelForm):
@@ -488,6 +489,7 @@ class EngForm2(forms.ModelForm):
                            required=False,
                            help_text="Add tags that help describe this engagement.  "
                                      "Choose from the list or add new tags.  Press TAB key to add.")
+    executive_summary = forms.CharField(widget=TinyMCE(attrs={'cols':80,'rows':30},mce_attrs={'height':300,'content_style':'div, p { font-size: 15px; }'}))
     product = forms.ModelChoiceField(queryset=Product.objects.all())
     target_start = forms.DateField(widget=forms.TextInput(
         attrs={'class': 'datepicker'}))
@@ -529,7 +531,8 @@ class DeleteEngagementForm(forms.ModelForm):
         exclude = ['name', 'version', 'eng_type', 'first_contacted', 'target_start',
                    'target_end', 'lead', 'requester', 'reason', 'report_type',
                    'product', 'test_strategy', 'threat_model', 'api_test', 'pen_test',
-                   'check_list', 'status', 'analysts', 'hours', 'description']
+                   'check_list', 'status', 'analysts', 'hours', 'description',
+                   'executive_summary','environment']
 
 
 class TestForm(forms.ModelForm):
@@ -1213,12 +1216,13 @@ class APIKeyForm(forms.ModelForm):
 
 
 class ReportOptionsForm(forms.Form):
-    yes_no = (('0', 'No'), ('1', 'Yes'))
-    include_finding_notes = forms.ChoiceField(choices=yes_no, label="Finding Notes")
+    yes_no = (('1', 'Yes'), ('0', 'No'))
+    no_yes = (('0', 'No'), ('1', 'Yes'))
+    include_finding_notes = forms.ChoiceField(choices=no_yes, label="Finding Notes")
     include_finding_images = forms.ChoiceField(choices=yes_no, label="Finding Images")
     include_executive_summary = forms.ChoiceField(choices=yes_no, label="Executive Summary")
     include_table_of_contents = forms.ChoiceField(choices=yes_no, label="Table of Contents")
-    report_type = forms.ChoiceField(choices=(('AsciiDoc', 'AsciiDoc'), ('PDF', 'PDF')))
+    report_type = forms.ChoiceField(choices=(('PDF', 'PDF'), ('AsciiDoc', 'AsciiDoc')))
 
 
 class CustomReportOptionsForm(forms.Form):
