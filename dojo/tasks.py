@@ -80,7 +80,8 @@ def async_pdf_report(self,
                                  False,
                                  configuration=config,
                                  cover=cover,
-                                 toc=toc)
+                                 toc=toc,
+                                 cover_first=True)
         if report.file.name:
             with open(report.file.path, 'w') as f:
                 f.write(pdf)
@@ -131,13 +132,13 @@ def async_custom_pdf_report(self,
         toc_depth = 4
 
         if 'table-of-contents' in selected_widgets:
-            xsl_style_sheet_tempalte = "dojo/pdf_toc.xsl"
+            xsl_style_sheet_template = "dojo/pdf_toc.xsl"
             temp = tempfile.NamedTemporaryFile()
 
             toc_settings = selected_widgets['table-of-contents']
 
             toc_depth = toc_settings.depth
-            toc_bytes = render_to_string(xsl_style_sheet_tempalte, {'widgets': widgets,
+            toc_bytes = render_to_string(xsl_style_sheet_template, {'widgets': widgets,
                                                                     'depth': toc_depth,
                                                                     'title': toc_settings.title})
             temp.write(toc_bytes)
