@@ -217,6 +217,11 @@
         </div>
     </div>
 
+    <div class="panel panel-default">
+        <div class="panel-heading"><h3>Executive summary</h3></div>
+        <div class="panel-body">{{ eng.executive_summary|safe }}</div>
+    </div>
+
     <div class="row same-height-panel-row">
         <div class="col-md-4">
             <div class="panel panel-default">
@@ -288,8 +293,8 @@
                             <thead>
                             <tr>
                                 <th>Type</th>
-                                <th>Findings</th>
-                                <th>Notes</th>
+                                <th class="text-center">Findings</th>
+                                <th class="text-center">Notes</th>
                                 <th>Actions</th>
                             </tr>
                             </thead>
@@ -305,8 +310,8 @@
                                           </sup>
                                       {% endif %}
                                     </td>
-                                    <td>{{ test.finding_set.all|length }}</td>
-                                    <td>{{ test.notes.all|length }}</td>
+                                    <td class="text-center">{{ test.finding_set.all|length }}</td>
+                                    <td class="text-center">{{ test.notes.all|length }}</td>
                                     <td>
                                         <div class="btn-group">
                                             <a class="btn btn-sm btn-primary"
