@@ -1,11 +1,12 @@
 {% extends "report_base.html" %}
 {% load static from staticfiles %}
+{% load get_system_setting %}
 {% block content %}
     <div class="container">
         <div class="page-cover-spacer">&nbsp;</div>
         <div class="text-center page-cover">
             <p>
-                <img src="{% static "dojo/img/logo.png" %}"/>
+                <img src="{% if "team_logo"|get_system_setting %}/media/{{ "team_logo"|get_system_setting }}{% else %}{% static "dojo/img/logo.png" %}{% endif %}"/>
             </p>
 
             <h1>{{ report_title }}</h1>

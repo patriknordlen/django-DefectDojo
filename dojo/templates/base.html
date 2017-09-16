@@ -67,7 +67,7 @@
                     <span class="icon-bar"></span>
                 </button>
                 <a class="navbar-brand" href="{% url 'home' %}">
-                    <img src="{% static "dojo/img/logo.png" %}" alt="DefectDojo Logo" width="240"/>
+                    <img src="{% if "team_logo"|get_system_setting %}/media/{{ "team_logo"|get_system_setting }}{% else %}{% static "dojo/img/logo.png" %}{% endif %}" alt="Team Logo" height="38"/>
                 </a>
 
             </div>

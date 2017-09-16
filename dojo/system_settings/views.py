@@ -38,7 +38,7 @@ def system_settings(request):
         system_settings_obj = System_Settings()
     form = SystemSettingsForm(instance=system_settings_obj)
     if request.method == 'POST':
-        form = SystemSettingsForm(request.POST, instance=system_settings_obj)
+        form = SystemSettingsForm(request.POST, request.FILES, instance=system_settings_obj)
         if form.is_valid():
             new_settings = form.save()
             messages.add_message(request,
