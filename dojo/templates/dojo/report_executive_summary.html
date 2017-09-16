@@ -2,7 +2,7 @@
 {% load get_system_setting %}
 <p>{{ "team_name"|get_system_setting }} have conducted a security assessment of {{ engagement.product.name }} during the period {{ engagement.target_start }}
     - {{ engagement.target_end }}. The purpose of the assignment was to identify vulnerabilities that could be used by an
-    attacker to compromise the application in any way.</p>
+    attacker to compromise the application in any way. The assessment was performed in a {{ engagement.environment }} environment.</p>
 
 <p>Information about IP numbers in scope as well as some limited information about the purpose served
 by the systems were given before the tests were carried out. The assessment was done by carrying 
