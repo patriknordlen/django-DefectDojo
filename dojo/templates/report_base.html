@@ -109,6 +109,10 @@
             page-break-before: always;
         }
 
+        .new-page {
+            page-break-before: always;
+        }
+
         .graph {
             height: 250px;
             width: 418px;
@@ -133,6 +137,7 @@
         pre, p {
             padding: 0;
             border: 0;
+            font-family: monospace !important;
             background-color: transparent;
             page-break-inside: auto;
             margin-bottom: 15px !important;
@@ -140,6 +145,7 @@
 
         pre {
             white-space: pre-wrap !important;
+            font-family: monospace !important;
             padding: 0 !important;
             overflow: visible !important;
         }
@@ -153,12 +159,19 @@
             margin-bottom: 11px;
         }
 
-        div.pretty-graphs, .panel, .panel-body {
+        hr {
+            visibility: hidden;
+            height: 0;
+            margin: 0;
+            page-break-before: always;
+        }
+
+div.pretty-graphs, .panel, .panel-body {
             page-break-inside: avoid;
         }
 
-        *, pre {
-            font-family: 'Roboto Slab', monospace !important;
+        body {
+            font-family: arial, sans-serif;
             font-size: 13px;
         }
 
