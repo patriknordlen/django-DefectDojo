@@ -21,6 +21,7 @@ from django.utils import timezone
 from pytz import all_timezones
 from tagging.registry import register as tag_register
 from multiselectfield import MultiSelectField
+from math import ceil
 
 class System_Settings(models.Model):
     enable_deduplication = models.BooleanField(default=False, 
@@ -560,25 +561,18 @@ class VA(models.Model):
     status = models.BooleanField(default=False, editable=False)
     start = models.CharField(max_length=100)
 
-class CVSSv2_Score(models.Model):
-    # Exploitability
-    access_vector = models.CharField(max_length=2,
-                                     choices=(('L','Local'),('AN','Adjacent Network'),('N','Network')))
-    access_complexity = models.CharField(max_length=1,
-                                     choices=(('H','High'),('M','Medium'),('L','Low')))
-    authentication = models.CharField(max_length=1,
-                                     choices=(('M','Multiple'),('S','Single'),('N','None')))
-
-    # Impact
-    confidentiality_impact = models.CharField(max_length=1,
-                                     choices=(('N','None'),('P','Partial'),('C','Complete')))
-    integrity_impact = models.CharField(max_length=1,
-                                     choices=(('N','None'),('P','Partial'),('C','Complete')))
-    availability_impact = models.CharField(max_length=1,
-                                     choices=(('N','None'),('P','Partial'),('C','Complete')))
 
 
 class Finding(models.Model):
+    CVSS_AV_CHOICES = (('L','Local'),('AN','Adjacent Network'),('N','Network'),('P','Physical'))
+    CVSS_AC_CHOICES = (('L','Low'),('H','High'))
+    CVSS_PR_CHOICES = (('N','None'),('L','Low'),('H','High'))
+    CVSS_UI_CHOICES = (('N','None'),('R','Required'))
+    CVSS_S_CHOICES = (('U','Unchanged'),('C','Changed'))
+    CVSS_C_CHOICES = (('N','None'),('L','Low'),('H','High'))
+    CVSS_I_CHOICES = (('N','None'),('L','Low'),('H','High'))
+    CVSS_A_CHOICES = (('N','None'),('L','Low'),('H','High'))
+
     title = models.TextField(max_length=1000)
     date = models.DateField(default=get_current_date)
     cwe = models.IntegerField(default=0, null=True, blank=True)
@@ -594,8 +588,25 @@ class Finding(models.Model):
     unsaved_tags = None
     references = models.TextField(null=True, blank=True, db_column="refs")
     test = models.ForeignKey(Test, editable=False)
-    # PN TODO! Actually implement this.
-    # cvss_score = models.ManyToManyField(CVSSv2_Score)
+
+    cvss_av = models.CharField(null=True, max_length=2,
+                               choices=CVSS_AV_CHOICES)
+    cvss_ac = models.CharField(null=True, max_length=1,
+                               choices=CVSS_AC_CHOICES)
+    cvss_pr = models.CharField(null=True, max_length=1,
+                               choices=CVSS_PR_CHOICES)
+    cvss_ui = models.CharField(null=True, max_length=1,
+                               choices=CVSS_UI_CHOICES)
+    cvss_s = models.CharField(null=True, max_length=1,
+                               choices=CVSS_S_CHOICES)
+    cvss_c = models.CharField(null=True, max_length=1,
+                               choices=CVSS_C_CHOICES)
+    cvss_i = models.CharField(null=True, max_length=1,
+                               choices=CVSS_I_CHOICES)
+    cvss_a = models.CharField(null=True, max_length=1,
+                               choices=CVSS_A_CHOICES)
+
+
     # TODO: Will be deprecated soon
     is_template = models.BooleanField(default=False)
     verified = models.BooleanField(default=True)
@@ -626,6 +637,39 @@ class Finding(models.Model):
 
     class Meta:
         ordering = ('numerical_severity', '-date', 'title')
+
+    @property
+    def cvss_vector(self):
+        return 'CVSS:3.0/' + '/'.join(["%s:%s" % (f.name[5:].upper(), getattr(self, f.name)) for f in self._meta.fields if f.name.startswith('cvss_')])
+    
+    @property
+    def cvss_score(self):
+        weights = {'AV':{'N':0.85,'AN':0.62,'L':0.55,'P':0.2},
+                   'AC':{'L':0.77,'H':0.44},
+                   'PR':{'N':0.85,'L':0.62,'H':0.27}, # TODO - these change if scope is changed
+                   'UI':{'N':0.85,'R':0.62},
+                   'C':{'H':0.56,'L':0.22,'N':0},
+                   'I':{'H':0.56,'L':0.22,'N':0},
+                   'A':{'H':0.56,'L':0.22,'N':0}}
+
+        isc_base = 1 - ((1-weights['C'][self.cvss_c])*(1-weights['I'][self.cvss_i])*(1-weights['A'][self.cvss_a]))
+
+        if self.cvss_s == 'U':
+            impact_score = 6.42 * isc_base
+        else:
+            impact_score = 7.52 * (isc_base - 0.029) - 3.25 * pow(isc_base - 0.02, 15)
+
+        if impact_score < 0:
+            return 0
+
+        exploitability_score = 8.22 * weights['AV'][self.cvss_av] * weights['AC'][self.cvss_ac] * weights['PR'][self.cvss_pr] * weights['UI'][self.cvss_ui]
+
+        if self.cvss_s == 'U':
+            score = ceil(min([(impact_score + exploitability_score),10])*10.0) / 10.0
+        else:
+            score = ceil(min([1.08 * (impact_score + exploitability_score),10])*10.0) / 10.0
+
+        return score
 
     @staticmethod
     def get_numerical_severity(severity):
