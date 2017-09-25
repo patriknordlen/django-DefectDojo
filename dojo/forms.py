@@ -60,10 +60,10 @@ class MultipleSelectWithPopPlusMinus(forms.SelectMultiple):
 
 
 class CVSSSelect(forms.Select):
-    def render(self, name, *args, **kwargs):
+    def render(self, name, value, *args, **kwargs):
         html = "<fieldset>"
         for val,desc in self.choices:
-            html += '<input name="{0}" value="{1}" id="{0}_{1}" type="radio"><label for="{0}_{1}">{2} ({1})</label>'.format(name, val, desc)
+            html += '<input name="{0}" value="{1}" id="{0}_{1}" type="radio" {2}><label for="{0}_{1}">{3} ({1})</label>'.format(name, val, "checked" if val == value else "", desc)
         html += "</fieldset>"
         return mark_safe(html)
 
@@ -694,11 +694,14 @@ class FindingForm(forms.ModelForm):
     severity_options = (('Low', 'Low'), ('Medium', 'Medium'),
                         ('High', 'High'), ('Critical', 'Critical'))
     description = forms.CharField(widget=forms.Textarea)
-    severity = forms.ChoiceField(
-        choices=severity_options,
-        error_messages={
-            'required': 'Select valid choice: In Progress, On Hold, Completed',
-            'invalid_choice': 'Select valid choice: Critical,High,Medium,Low'})
+    cvss_av = forms.ChoiceField(label='CVSS Access Vector (AV)', choices=Finding.CVSS_AV_CHOICES, widget=CVSSSelect)
+    cvss_ac = forms.ChoiceField(label='CVSS Access Complexity (AC)', choices=Finding.CVSS_AC_CHOICES, widget=CVSSSelect)
+    cvss_pr = forms.ChoiceField(label='CVSS Privileges Required (PR)', choices=Finding.CVSS_PR_CHOICES, widget=CVSSSelect)
+    cvss_ui = forms.ChoiceField(label='CVSS User Interaction (UI)', choices=Finding.CVSS_UI_CHOICES, widget=CVSSSelect)
+    cvss_s = forms.ChoiceField(label='CVSS Scope (S)', choices=Finding.CVSS_S_CHOICES, widget=CVSSSelect)
+    cvss_c = forms.ChoiceField(label='CVSS Confidentiality (C)', choices=Finding.CVSS_C_CHOICES, widget=CVSSSelect)
+    cvss_i = forms.ChoiceField(label='CVSS Integrity (I)', choices=Finding.CVSS_I_CHOICES, widget=CVSSSelect)
+    cvss_a = forms.ChoiceField(label='CVSS Availability (A)', choices=Finding.CVSS_A_CHOICES, widget=CVSSSelect)
     mitigation = forms.CharField(widget=forms.Textarea)
     impact = forms.CharField(widget=forms.Textarea)
     endpoints = forms.ModelMultipleChoiceField(Endpoint.objects, required=False, label='Systems / Endpoints',
