@@ -87,7 +87,7 @@ def add_customer(request):
 @user_passes_test(lambda u: u.is_staff)
 def edit_customer(request, cid):
     customer = get_object_or_404(Customer, pk=cid)
-    form = CustomerForm(instance=c)
+    form = CustomerForm(instance=customer)
     if request.method == 'POST':
         form = CustomerForm(request.POST, instance=pt)
         if form.is_valid():
