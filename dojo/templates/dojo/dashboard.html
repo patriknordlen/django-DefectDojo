@@ -27,9 +27,8 @@
                         </div>
                     </div>
                 </div>
-                    {% if engagements %}
                 <div class="panel-body">
-                    <table class="tablesorter-bootstrap table table-bordered table-condensed table-striped table-hover">
+                        <table class="tablesorter-bootstrap table table-bordered table-condensed table-striped table-hover">
                      <tr>
                          <th>{% dojo_sort request 'ID' 'id' %}</th>
                          <th>{% dojo_sort request 'Product' 'product' %}</th>
@@ -50,11 +49,7 @@
                             </tr>
                         {% endfor %}
                     </table>
-                    {% endif %}
-                </div>
-                <div class="panel-footer">
-                        <span class="pull-right"><a href="{% url 'calendar' %}">Engagement Calendar <i class="fa fa-arrow-circle-right"></i></a></span>
-                        <div class="clearfix"></div>
+                    <span class="pull-right"><a href="{% url 'calendar' %}">Engagement Calendar <i class="fa fa-arrow-circle-right"></i></a></span>
                 </div>
             </div>
         </div>
