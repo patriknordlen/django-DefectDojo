@@ -1146,11 +1146,11 @@ div.tags .label {
     cursor: url(../img/zoom-in.cur), zoom-in;
 }
 
-fieldset input { display: none; width:auto; }
-fieldset label {
+.cvss fieldset input { display: none; width:auto; }
+.cvss fieldset label {
   background: #cccccc; display: inline-block; margin: 3px; padding: 2px 5px; border: 0; cursor: pointer; font-size: 90%;
   border-radius: 5px; color: #666666; border: 1px solid #999999;
   user-select: none; -webkit-user-select: none; -moz-user-select: -moz-none; -ms-user-select: none; user-select: none;
 }
-fieldset label:hover { background: #666666; color: #ffffff; border: 1px solid #666666 }
-fieldset input:checked + label { background: #337ab7; border: 1px #2e6da4; color: #ffffff; }
+.cvss fieldset label:hover { background: #666666; color: #ffffff; border: 1px solid #666666 }
+.cvss fieldset input:checked + label { background: #337ab7; border: 1px #2e6da4; color: #ffffff; }

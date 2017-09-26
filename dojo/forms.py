@@ -61,7 +61,7 @@ class MultipleSelectWithPopPlusMinus(forms.SelectMultiple):
 
 class CVSSSelect(forms.Select):
     def render(self, name, value, *args, **kwargs):
-        html = "<fieldset>"
+        html = """<fieldset class="cvss">"""
         for val,desc in self.choices:
             html += '<input name="{0}" value="{1}" id="{0}_{1}" type="radio" {2}><label for="{0}_{1}">{3} ({1})</label>'.format(name, val, "checked" if val == value else "", desc)
         html += "</fieldset>"
