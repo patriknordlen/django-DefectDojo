@@ -64,11 +64,12 @@
                                     <i class="fa fa-bug"></i> View Open Findings
                                 </a>
                             </li>
-                            <li role="presentation">
+                            <!-- Removing this for now to avoid confusion...
+                                <li role="presentation">
                                 <a href="{% url 'product_report' prod.id %}">
                                     <i class="fa fa-file-text-o"></i> Product Report
                                 </a>
-                            </li>
+                            </li> -->
                             {% if prod.endpoint_count > 0 %}
                                 <li role="presentation">
                                     <a href="{% url 'product_endpoint_report' prod.id %}">
