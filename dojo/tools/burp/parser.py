@@ -227,7 +227,6 @@ def get_item(item_node, test):
                       description=background + "\n\n" + detail,
                       mitigation=remediation,
                       references=references,
-                      active=False,
                       verified=False,
                       false_p=False,
                       duplicate=False,
