@@ -15,7 +15,10 @@ from celery.decorators import task
 from dojo.models import Finding, Test, Engagement
 from django.utils import timezone
 
+from docxtpl import DocxTemplate, RichText
+from StringIO import StringIO
 import pdfkit
+import sys
 from dojo.celery import app
 from dojo.reports.widgets import report_widget_factory
 from dojo.utils import add_comment, add_epic, add_issue, update_epic, update_issue, \
@@ -46,6 +49,62 @@ def add_alerts(self, runinterval):
                            url=reverse('view_engagement', args=(eng.id,)),
                            recipients=[eng.lead])
 
+
+@app.task(bind=True)
+def async_docx_report(self,
+                     report=None,
+                     template="None",
+                     filename='report.docx',
+                     report_title=None,
+                     report_subtitle=None,
+                     report_info=None,
+                     context={},
+                     uri=None):
+
+    def add_rt_fields(context):
+        context['engagement'].executive_summary_rt = RichText(context['engagement'].executive_summary)
+        for finding in context['findings']:
+            finding.description_rt = RichText(finding.description)
+            finding.impact_rt = RichText(finding.impact)
+            finding.mitigation_rt = RichText(finding.mitigation)
+            finding.references_rt = RichText(finding.references)
+            finding.title_rt = RichText(finding.title)
+        return context
+
+    try:
+        report.task_id = async_docx_report.request.id
+        report.status = 'running'
+        report.save()
+
+        d = DocxTemplate(settings.DOJO_ROOT + '/templates/dojo/engagement_report.docx')
+        context = add_rt_fields(context)
+        d.render(context)
+
+        if report.file.name:
+            d.save(report.file.path)
+        else:
+            rtmp = StringIO()
+            d.save(rtmp)
+            f = ContentFile(rtmp.getvalue())
+            report.file.save(filename, f)
+
+        report.status = 'success'
+        report.done_datetime = timezone.now()
+        report.save()
+
+        create_notification(event='report_created', 
+                            title='Report created',
+                            description='The report "%s" is ready.' % report.name,
+                            icon='file-text',
+                            url=uri, report=report, objowner=report.requester)
+    except Exception as e:
+        report.status = 'error'
+        report.save()
+        # email_requester(report, uri, error=e)
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        print(exc_type, exc_tb.tb_lineno)
+        raise e
+    return True
 
 @app.task(bind=True)
 def async_pdf_report(self,

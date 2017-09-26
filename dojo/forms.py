@@ -147,7 +147,6 @@ class MonthYearWidget(Widget):
 
 class CustomerForm(forms.ModelForm):
     name = forms.CharField(required=True)
-#    contacts = forms.
     class Meta:
         model = Customer
         fields = ['name']
@@ -463,7 +462,7 @@ class EngForm(forms.ModelForm):
     target_end = forms.DateField(widget=forms.TextInput(
         attrs={'class': 'datepicker'}))
     analysts = forms.ModelMultipleChoiceField(
-        queryset=User.objects.filter(is_staff=True),
+        queryset=Dojo_User.objects.filter(is_staff=True),
         required=True)
 
     def is_valid(self):
@@ -1234,7 +1233,7 @@ class ReportOptionsForm(forms.Form):
     include_finding_images = forms.ChoiceField(choices=yes_no, label="Finding Images")
     include_executive_summary = forms.ChoiceField(choices=yes_no, label="Executive Summary")
     include_table_of_contents = forms.ChoiceField(choices=yes_no, label="Table of Contents")
-    report_type = forms.ChoiceField(choices=(('PDF', 'PDF'), ('AsciiDoc', 'AsciiDoc')))
+    report_type = forms.ChoiceField(choices=(('PDF', 'PDF'), ('AsciiDoc', 'AsciiDoc'),('docx','docx')))
 
 
 class CustomReportOptionsForm(forms.Form):
@@ -1242,7 +1241,7 @@ class CustomReportOptionsForm(forms.Form):
     report_name = forms.CharField(required=False, max_length=100)
     include_finding_notes = forms.ChoiceField(required=False, choices=yes_no)
     include_finding_images = forms.ChoiceField(choices=yes_no, label="Finding Images")
-    report_type = forms.ChoiceField(required=False, choices=(('AsciiDoc', 'AsciiDoc'), ('PDF', 'PDF')))
+    report_type = forms.ChoiceField(required=False, choices=(('AsciiDoc', 'AsciiDoc'), ('PDF', 'PDF'),('docx','docx')))
 
 
 class DeleteReportForm(forms.ModelForm):

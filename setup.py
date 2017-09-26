@@ -41,7 +41,9 @@ setup(
         'pycrypto',
         'lxml',
         'django-multiselectfield',
-        'django-tinymce'],
+        'django-tinymce',
+        'python-docx',
+        'python-docx-template'],
     dependency_links=[
         "https://github.com/grendel513/python-pdfkit/tarball/master#egg=pdfkit-0.5.0",
     ],

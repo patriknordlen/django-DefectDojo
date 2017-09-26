@@ -24,7 +24,7 @@ from dojo.models import Customer, Finding, Product, Engagement, Test, \
     Dojo_User, Endpoint, Report, Risk_Acceptance
 from dojo.reports.widgets import CoverPage, PageBreak, TableOfContents, WYSIWYGContent, FindingList, EndpointList, \
     CustomReportJsonForm, ReportOptions, report_widget_factory
-from dojo.tasks import async_pdf_report, async_custom_pdf_report
+from dojo.tasks import async_pdf_report, async_custom_pdf_report, async_docx_report
 from dojo.utils import get_page_items, add_breadcrumb, get_period_counts, get_system_setting, get_period_counts_legacy
 
 logging.basicConfig(
@@ -655,9 +655,9 @@ def generate_report(request, obj):
                                                                        ).prefetch_related('test',
                                                                                           'test__engagement__product',
                                                                                           'test__engagement__product__customer').distinct())
-        report_name = "Engagement Report: " + str(engagement)
+        report_name = '%s - %s - %s' % (engagement.product.customer, engagement.product, engagement)
         filename = "engagement_finding_report.pdf"
-        template = 'dojo/engagement_pdf_report.html'
+        template = 'dojo/engagement_pdf_report_new.html'
         report_title = "Engagement Report"
         report_subtitle = str(engagement)
 
@@ -673,7 +673,7 @@ def generate_report(request, obj):
                    'include_executive_summary': include_executive_summary,
                    'include_table_of_contents': include_table_of_contents,
                    'user': user,
-                   'team_name': settings.TEAM_NAME,
+                   'team_name': get_system_setting('team_name'),
                    'title': 'Generate Report',
                    'host': report_url_resolver(request),
                    'user_id': request.user.id}
@@ -813,6 +813,35 @@ def generate_report(request, obj):
                                  'Your report is building.',
                                  extra_tags='alert-success')
 
+            return HttpResponseRedirect(reverse('reports'))
+        elif report_format == 'docx':
+            filename = "engagement_finding_report.docx"
+            template = 'dojo/engagement_report.docx'
+            report_title = "Engagement Report"
+            if 'regen' in request.GET:
+                # we should already have a report object, lets get and use it
+                report = get_object_or_404(Report, id=request.GET['regen'])
+                report.datetime = timezone.now()
+                report.status = 'requested'
+                if report.requester.username != request.user.username:
+                    report.requester = request.user
+            else:
+                # lets create the report object and send it in to celery task
+                report = Report(name=report_name,
+                                type=report_type,
+                                format='docx',
+                                requester=request.user,
+                                task_id='tbd',
+                                options=request.path + "?" + request.GET.urlencode())
+            report.save()
+            async_docx_report.delay(report=report,
+                                    template=template,
+                                    filename=filename,
+                                    report_title=report_title,
+                                    report_subtitle=report_subtitle,
+                                    report_info=report_info,
+                                    context=context,
+                                    uri=request.build_absolute_uri(report.get_url()))
             return HttpResponseRedirect(reverse('reports'))
         else:
             raise Http404()
