@@ -197,7 +197,7 @@ INSTALLED_APPS = (
     'multiselectfield',
     'tinymce',
     'python-docx',
-    'python-docx-template'
+    'docxtpl'
 )
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
