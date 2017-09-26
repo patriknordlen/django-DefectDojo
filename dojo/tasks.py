@@ -61,15 +61,14 @@ def async_docx_report(self,
                      context={},
                      uri=None):
 
-    def add_rt_fields(context):
-        context['engagement'].executive_summary_rt = RichText(context['engagement'].executive_summary)
-        for finding in context['findings']:
+    def add_rt_fields(findings):
+        for finding in findings:
             finding.description_rt = RichText(finding.description)
             finding.impact_rt = RichText(finding.impact)
             finding.mitigation_rt = RichText(finding.mitigation)
             finding.references_rt = RichText(finding.references)
             finding.title_rt = RichText(finding.title)
-        return context
+        return findings
 
     try:
         report.task_id = async_docx_report.request.id
@@ -77,7 +76,7 @@ def async_docx_report(self,
         report.save()
 
         d = DocxTemplate(settings.DOJO_ROOT + '/templates/dojo/engagement_report.docx')
-        context = add_rt_fields(context)
+        context['findings'] = add_rt_fields(context['findings'])
         d.render(context)
 
         if report.file.name:
