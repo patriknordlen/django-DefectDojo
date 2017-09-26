@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-    <h3> Edit Customer {{ pt.name }}</h3>
+    <h3> Edit Customer {{ c.name }}</h3>
     <form class="form-horizontal" action="{% url 'edit_customer' pt.id %}" method="post">{% csrf_token %}
         {% include "dojo/form_fields.html" with form=form %}
         <div class="form-group">
