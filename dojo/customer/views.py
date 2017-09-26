@@ -110,7 +110,6 @@ def edit_customer(request, cid):
 def add_product_to_customer(request, cid):
     customer = get_object_or_404(Customer, pk=cid)
     form = CustomerProductForm(initial={'customer': customer.id})
-    print form
     add_breadcrumb(title="New %s Product" % customer.name, top_level=False, request=request)
     return render(request, 'dojo/new_product.html',
                   {'form': form,
