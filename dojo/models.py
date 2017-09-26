@@ -71,9 +71,8 @@ class Dojo_User(User):
         """
         Returns the first_name plus the last_name, with a space in between.
         """
-        full_name = '%s %s (%s)' % (self.first_name,
-                                    self.last_name,
-                                    self.username)
+        full_name = '%s %s' % (self.first_name,
+                                    self.last_name)
         return full_name.strip()
 
     def __unicode__(self):
@@ -388,7 +387,7 @@ class Engagement(models.Model):
     first_contacted = models.DateField(null=True, blank=True)
     target_start = models.DateField(null=False, blank=False)
     target_end = models.DateField(null=False, blank=False)
-    analysts = models.ManyToManyField(User, editable=True)
+    analysts = models.ManyToManyField(Dojo_User, editable=True)
     hours = models.IntegerField(null=False)
     environment = models.ForeignKey(Development_Environment, null=True)
     report_type = models.ForeignKey(Report_Type, null=True, blank=True)
@@ -402,6 +401,13 @@ class Engagement(models.Model):
                                        ('On Hold', 'On Hold'),
                                        ('Completed', 'Completed')))
     done_testing = models.BooleanField(default=False, editable=False)
+
+    @property
+    def highest_severity_finding(self):
+        for severity in ['Critical','High','Medium','Low','Info']:
+            findings = Finding.objects.filter(test__engagement=self,severity=severity)
+            if findings:
+                return findings[0]
 
     class Meta:
         ordering = ['-target_start']
@@ -640,7 +646,10 @@ class Finding(models.Model):
 
     @property
     def cvss_vector(self):
-        return 'CVSS:3.0/' + '/'.join(["%s:%s" % (f.name[5:].upper(), getattr(self, f.name)) for f in self._meta.fields if f.name.startswith('cvss_')])
+        if not self.cvss_c:
+            return 'N/A'
+        else:
+            return 'CVSS:3.0/' + '/'.join(["%s:%s" % (f.name[5:].upper(), getattr(self, f.name)) for f in self._meta.fields if f.name.startswith('cvss_')])
     
     @property
     def cvss_score(self):
@@ -780,6 +789,19 @@ class Finding(models.Model):
         bc += [{'title': self.__unicode__(),
                 'url': reverse('view_finding', args=(self.id,))}]
         return bc
+
+    @property
+    def severity_color(self):
+        if self.severity == 'Info':
+            return '888888'
+        elif self.severity == 'Low':
+            return '337ab7'
+        elif self.severity == 'Medium':
+            return 'FBE413'
+        elif self.severity == 'High':
+            return 'f09835'
+        elif self.severity == 'Critical':
+            return 'f09835'
 
         # def get_request(self):
         #     if self.burprawrequestresponse_set.count() > 0:
