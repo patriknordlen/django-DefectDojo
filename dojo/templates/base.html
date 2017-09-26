@@ -250,21 +250,10 @@
             <div class="row">
                 <div class="col-md-12 text-center text-">
                     <p>
-                        <a href="{% url 'home' %}"><img class="logo" src="{% static "dojo/img/chop.png" %}"
-                                                        alt="DefectDojo Chop" height="45"/></a><br/>
-                        {% dojo_version %}
+                        <img src="{% if "team_logo"|get_system_setting %}/media/{{ "team_logo"|get_system_setting }}{% else %}{% static "dojo/img/logo.png" %}{% endif %}" alt="Team Logo" height="38"/>
                     </p>
                     <p>
-                        Detailed DefectDojo documentation can be found at  <a
-                            href="{% dojo_docs_url %}">Read The Docs</a>.
-                    </p>
-                    <p>
-                        DefectDojo is licensed under the <a
-                            href="https://github.com/rackerlabs/django-DefectDojo/blob/master/LICENSE.md">Simplified BSD
-                        license</a>.
-                    </p>
-                    <p>
-                        &copy; {% now "Y" %} DefectDojo
+                        This reporting portal can (so far) be blamed on Patrik Nordlén but is heavily heavily based on / inspired by <a href="https://github.com/OWASP/django-DefectDojo/">DefectDojo</a>.
                     </p>
                 </div>
             </div>
