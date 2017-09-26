@@ -75,6 +75,15 @@ def product(request):
                    'user': request.user})
 
 
+def engagements_json(request, pid):
+    if request.user.is_superuser:
+        engagements = Engagement.objects.filter(product__id=pid).order_by('name')
+    else:
+        engagements = Engagement.objects.filter(product__id=pid,product__authorized_users__in=[request.user]).order_by('name')
+
+    return HttpResponse(serializers.serialize('json', engagements), content_type='application/json')
+
+
 def iso_to_gregorian(iso_year, iso_week, iso_day):
     jan4 = date(iso_year, 1, 4)
     start = jan4 - timedelta(days=jan4.isoweekday() - 1)
