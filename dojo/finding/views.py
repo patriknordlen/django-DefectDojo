@@ -367,13 +367,9 @@ def edit_finding(request, fid):
             new_finding.test = finding.test
             new_finding.numerical_severity = Finding.get_numerical_severity(
                 new_finding.severity)
-            if new_finding.false_p or new_finding.active is False:
+            if new_finding.false_p:
                 new_finding.mitigated = timezone.now()
                 new_finding.mitigated_by = request.user
-            if new_finding.active is True:
-                new_finding.false_p = False
-                new_finding.mitigated = None
-                new_finding.mitigated_by = None
 
             create_template = new_finding.is_template
             # always false now since this will be deprecated soon in favor of new Finding_Template model
@@ -675,7 +671,6 @@ def promote_to_finding(request, fid):
             new_finding.numerical_severity = Finding.get_numerical_severity(
                 new_finding.severity)
 
-            new_finding.active = True
             new_finding.false_p = False
             new_finding.duplicate = False
             new_finding.mitigated = None
