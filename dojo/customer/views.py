@@ -86,12 +86,12 @@ def add_customer(request):
 
 @user_passes_test(lambda u: u.is_staff)
 def edit_customer(request, cid):
-    pt = get_object_or_404(Customer, pk=cid)
-    form = CustomerForm(instance=pt)
+    customer = get_object_or_404(Customer, pk=cid)
+    form = CustomerForm(instance=c)
     if request.method == 'POST':
         form = CustomerForm(request.POST, instance=pt)
         if form.is_valid():
-            pt = form.save()
+            customer = form.save()
             messages.add_message(request,
                                  messages.SUCCESS,
                                  'customer updated successfully.',
@@ -103,7 +103,7 @@ def edit_customer(request, cid):
         'metric': False,
         'user': request.user,
         'form': form,
-        'pt': pt})
+        'c': customer})
 
 
 @user_passes_test(lambda u: u.is_staff)
