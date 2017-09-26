@@ -381,7 +381,6 @@ class Engagement_Type(models.Model):
 class Engagement(models.Model):
     name = models.CharField(max_length=300, null=True, blank=True)
     description = models.CharField(max_length=2000, null=True, blank=True)
-    executive_summary = models.TextField(null=True)
     version = models.CharField(max_length=100, null=True, blank=True)
     eng_type = models.ForeignKey(Engagement_Type, null=True, blank=True)
     first_contacted = models.DateField(null=True, blank=True)
