@@ -276,7 +276,7 @@
                         <td><a href="{% url 'promote_to_finding' finding.id %}">{{ finding.title }}</a></td>
                         <td>{% if finding.severity == "Critical" or finding.severity == "High" %}
                             <span class="text-error">
-                        {% else %}<span>{% endif %}{{ finding.severity }}</span></td>
+                        {% else %}<span>{% endif %}{{ finding.cvss_score }}</span></td>
                         <td>{{ finding.reporter.username }}</td>
                         <td>{{ finding.date }}</td>
                         <td>

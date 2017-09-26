@@ -472,7 +472,7 @@
                                     <td><a href="{% url 'view_finding' finding.id %}">{{ finding.title }}</a></td>
                                     <td>
                                         <span class="label severity severity-{{ finding.severity }}">
-                                            {{ finding.severity_display }}
+                                            {{ finding.cvss_score }}
                                         </span>
                                     </td>
                                     <td>{{ finding.reporter.username }}</td>

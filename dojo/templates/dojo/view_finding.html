@@ -16,7 +16,7 @@
                         </sup>
                     {% endif %}
                     {% if finding.last_reviewed %}
-                        <small>Last reviewed {{ finding.last_reviewed | naturalday }}
+                        <small>{{ finding.cvss_vector }} - Last reviewed {{ finding.last_reviewed | naturalday }}
                             by {{ finding.last_reviewed_by }}</small>
                     {% else %}
                         <small>Last reviewed {{ finding.date | naturalday }} by {{ finding.reporter }}</small>
@@ -124,19 +124,16 @@
                     </tr>
                 {% endif %}
                 <tr>
-                    <th>Severity</th>
-                    <th>Status</th>
-                    {% if finding.risk_acceptance_set.all %}
-                        <th>Acceptance</th>
-                    {% endif %}
-                    <!--<th>Build ID</th>-->
-                    <th>Date discovered</th>
-                    <th>Age</th>
+                    <th>CVSS Base Score</th>
+                    <th>Access Vector</th>
+                    <th>Access Complexity</th>
+                    <th>Privileges Required</th>
+                    <th>User Interaction</th>
+                    <th>Scope</th>
+                    <th>Confidentiality Impact</th>
+                    <th>Integrity Impact</th>
+                    <th>Availability Impact</th>
                     <th>Reporter</th>
-                    {% if finding.mitigated %}
-                        <th>Date Mitigated</th>
-                        <th>Mitigated By</th>
-                    {% endif %}
                     {% if finding.cwe > 0 %}
                         <th>CWE</th>
                     {% endif %}
@@ -151,20 +148,14 @@
                             {% endif %}
                         </span>
                     </td>
-                    <td> {% if finding.under_review %}Under Review, {% endif %}{{ finding.status }}</td>
-                    {% if finding.risk_acceptance_set.all %}
-                        <td>
-                            <a href="{% url 'view_risk' finding.test.engagement.id finding.risk_acceptance_set.all.0.id %}">
-                                View Risk Acceptance</a>
-                        </td>
-                    {% endif %}
-                    <td>{{ finding.date }}</td>
-                    <td>{{ finding.age }} days</td>
-                    <td>{{ finding.reporter }}</td>
-                    {% if finding.mitigated %}
-                        <td>{{ finding.mitigated }}</td>
-                        <td>{{ finding.mitigated_by }}</td>
-                    {% endif %}
+                    <td>{{ finding.cvss_av }}</td>
+                    <td>{{ finding.cvss_ac }}</td>
+                    <td>{{ finding.cvss_pr }}</td>
+                    <td>{{ finding.cvss_ui }}</td>
+                    <td>{{ finding.cvss_s }}</td>
+                    <td>{{ finding.cvss_c }}</td>
+                    <td>{{ finding.cvss_i }}</td>
+                    <td>{{ finding.cvss_a }}</td>
                     {% if finding.cwe > 0 %}
                         <td>
                             <a target="_blank" href="https://cwe.mitre.org/data/definitions/{{ finding.cwe }}.html">
