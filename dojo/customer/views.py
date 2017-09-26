@@ -33,15 +33,15 @@ def customer(request):
     name_words = [product.name for product in
                   initial_queryset]
 
-    ptl = ProductTypeFilter(request.GET, queryset=initial_queryset)
-    pts = get_page_items(request, ptl.qs, 25)
+    cl = ProductTypeFilter(request.GET, queryset=initial_queryset)
+    cs = get_page_items(request, cl.qs, 25)
     add_breadcrumb(title="Customer List", top_level=True, request=request)
     return render(request, 'dojo/customer.html', {
         'name': 'Customer List',
         'metric': False,
         'user': request.user,
-        'pts': pts,
-        'ptl': ptl,
+        'cs': cs,
+        'cl': cl,
         'name_words': name_words})
 
 
@@ -89,7 +89,7 @@ def edit_customer(request, cid):
     customer = get_object_or_404(Customer, pk=cid)
     form = CustomerForm(instance=customer)
     if request.method == 'POST':
-        form = CustomerForm(request.POST, instance=pt)
+        form = CustomerForm(request.POST, instance=customer)
         if form.is_valid():
             customer = form.save()
             messages.add_message(request,
