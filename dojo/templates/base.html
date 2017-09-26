@@ -145,36 +145,17 @@
                             </li>
                             {% if request.user.is_staff %}
                                 <li>
-                                    <a href="#"><i class="fa fa-inbox fa-fw"></i> <span>Engagements</span><span
+                                    <a href="{% url 'templates' %}"><i class="fa fa-bug fa-fw"></i> <span>Finding Templates</span><span
                                             class="glyphicon arrow"></span></a>
-                                </li>
-                                <li>
-                                    <a href="#"><i class="fa fa-bug fa-fw"></i> <span>Findings</span><span
-                                            class="glyphicon arrow"></span></a>
-                                    <ul class="nav nav-second-level">
-                                        <li>
-                                            <a href="{% url 'open_findings' %}">Open Findings</a>
-                                        </li>
-                                        <li>
-                                            <a href="{% url 'accepted_findings' %}">Accepted Findings</a>
-                                        </li>
-                                        <li>
-                                            <a href="{% url 'closed_findings' %}">Closed Findings</a>
-                                        </li>
-                                        <li>
-                                            <a href="{% url 'templates' %}">Finding Templates</a>
-                                        </li>
-                                    </ul>
-                                    <!-- /.nav-second-level -->
                                 </li>
                             {% endif %}
                             <li>
                                 <a href="{% url 'reports' %}"><i class="fa fa-file-text-o fa-fw"></i> <span>Reports</span><span
                                         class="glyphicon arrow"></span></a>
-                                <ul class="nav nav-second-level">
+                                <!-- <ul class="nav nav-second-level">
                                     <li><a href="{% url 'reports' %}"> All Reports </a></li>
                                     <li><a href="{% url 'report_builder' %}"> Report Builder </a></li>
-                                </ul>
+                                </ul> -->
                                 <!-- /.nav-second-level -->
                             </li>
                             {% if request.user.is_staff %}
@@ -317,7 +298,6 @@
         $('.has-popover').popover({'trigger':'hover'});
         $('.dropdown-toggle').click(function() { get_alerts(); reset_alerts(); });
         $('#customer-parent').mouseenter(function() { get_customers(); });
-        $('#engagement-menu').mouseenter(function() { get_engagements(); });
 
         setInterval(function() {
             update_alertcount();
@@ -342,9 +322,20 @@
             $.get("/customer/" + cid + "/json", function(data) {
                 $('#product-container-' + cid).empty();
                 $.each(data, function(i, elem) {
-                    $('#product-container-' + cid).append('<li><a href="/product/' + elem.pk + '">' + elem.fields.name + '</a></li>');
+                    $('#product-container-' + cid).append('<li><a href="/product/' + elem.pk + '">' + elem.fields.name + '</a><ul id="engagement-container-' + elem.pk + '" class="nav nav-second-level"></ul></li>');
+                    $('#product-container-' + cid).mouseenter(function() { get_engagements(elem.pk); })
                 });
                 $('#product-container-' + cid).append('<li><a href="/customer/' + cid + '/add_product"><i class="fa fa-fw fa-plus"></i> Add product</a></li>');
+            });
+        }
+
+        function get_engagements(pid) {
+        $.get("/product/" + pid + "/engagements/json", function(data) {
+                $('#engagement-container-' + pid).empty();
+                $.each(data, function(i, elem) {
+                    $('#engagement-container-' + pid).append('<li><a href="/engagement/' + elem.pk + '">' + elem.fields.name + '</a></li>');
+                });
+                $('#engagement-container-' + pid).append('<li><a href="/engagement/' + pid + '/add_engagement"><i class="fa fa-fw fa-plus"></i> Add engagement</a></li>');
             });
         }
 
@@ -352,7 +343,7 @@
             $.get("{% url 'customers_json' %}", function(data) {
                 $('#customer-container').empty();
                 $.each(data, function(i, elem) {
-                    $('#customer-container').append('<li id="customer-' + elem.pk + '"><a href="/customer/' + elem.pk + '">' + elem.fields.name + '</a><ul id="product-container-' + elem.pk + '" class="nav nav-third-level"></ul></li>');
+                    $('#customer-container').append('<li id="customer-' + elem.pk + '"><a href="/customer/' + elem.pk + '">' + elem.fields.name + '</a><ul id="product-container-' + elem.pk + '" class="nav nav-second-level"></ul></li>');
                     $('#customer-' + elem.pk).mouseenter(function() { get_products(elem.pk); })
                 });
                 $('#customer-container').append('<li><a href="{% url "add_customer" %}"><i class="fa fa-fw fa-plus"></i> Add customer</a></li>');
