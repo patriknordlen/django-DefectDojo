@@ -48,7 +48,6 @@ class NmapXMLParser(object):
                 else:
                     find = Finding(title=title,
                                     test=test,
-                                    active=False,
                                     verified=False,
                                     description=description,
                                     severity=severity,
