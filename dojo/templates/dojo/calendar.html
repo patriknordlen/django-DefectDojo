@@ -68,7 +68,7 @@
                                 start: '{{e.target_start|date:"c"}}',
                                 end: '{{e.target_end|date:"c"}}',
                                 url: '{% url 'view_engagement' e.id %}',
-                                color: {%  if e.active %}'#337ab7'{% else %}'#b9b9b9'{% endif %},
+                                color: {%  if e.active %}"#"+((1<<24)*Math.random()|0).toString(16){% else %}'#b9b9b9'{% endif %}, // '#337ab7'
                                 overlap: true
                             },
                         {%  endfor %}
