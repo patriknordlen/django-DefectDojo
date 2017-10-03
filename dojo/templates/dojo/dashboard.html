@@ -22,7 +22,7 @@
                             <i class="fa fa-bullseye fa-5x"></i>
                         </div>
                         <div class="col-xs-9 text-right">
-                            <div class="huge">{{ engagement_count }}</div>
+                            <div class="huge">{{ active_engagement_count }}</div>
                             <div>Active Engagements</div>
                         </div>
                     </div>
@@ -37,7 +37,46 @@
                          <th>{% dojo_sort request 'End' 'target_end' %}</th>
                          <th>Analysts</th>
                      </tr>
-                        {% for e in engagements %}
+                        {% for e in active_engagements %}
+                            <tr>
+                                <td><a href="{% url 'view_engagement' e.id %}"><div class="item-container">{{ e.id }}</div></td>
+                                <td>{{ e.product.name }}</td>
+                                <td>{{ e.product.customer }}</td>
+                                <td>{{ e.target_start }}</td>
+                                <td>{{ e.target_end }}</td>
+                                <td>{% for a in e.analysts.all %} {{ a }}{% if not loop.last %}<br/>{% endif %}{% endfor %}</td>
+                                </a>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                    <span class="pull-right"><a href="{% url 'calendar' %}">Engagement Calendar <i class="fa fa-arrow-circle-right"></i></a></span>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 col-md-6">
+            <div class="panel panel-green">
+                <div class="panel-heading">
+                    <div class="row">
+                        <div class="col-xs-3">
+                            <i class="fa fa-arrow-circle-o-up fa-5x"></i>
+                        </div>
+                        <div class="col-xs-9 text-right">
+                            <div class="huge">{{ upcoming_engagement_count }}</div>
+                            <div>Upcoming Engagements</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-body">
+                        <table class="tablesorter-bootstrap table table-bordered table-condensed table-striped table-hover">
+                     <tr>
+                         <th>{% dojo_sort request 'ID' 'id' %}</th>
+                         <th>{% dojo_sort request 'Product' 'product' %}</th>
+                         <th>{% dojo_sort request 'Customer' 'customer' %}</th>
+                         <th>{% dojo_sort request 'Start' 'target_start' %}</th>
+                         <th>{% dojo_sort request 'End' 'target_end' %}</th>
+                         <th>Analysts</th>
+                     </tr>
+                        {% for e in upcoming_engagements %}
                             <tr>
                                 <td><a href="{% url 'view_engagement' e.id %}"><div class="item-container">{{ e.id }}</div></td>
                                 <td>{{ e.product.name }}</td>
