@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 def vulnerable_endpoints(request):
-    endpoints = Endpoint.objects.filter(finding__active=True, finding__verified=True, finding__false_p=False,
+    endpoints = Endpoint.objects.filter(finding__verified=True, finding__false_p=False,
                                         finding__duplicate=False, finding__out_of_scope=False).distinct()
 
     # are they authorized
