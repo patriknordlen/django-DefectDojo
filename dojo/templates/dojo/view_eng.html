@@ -228,7 +228,7 @@
                         <p> Environment: {{ eng.environment }}</p>
                         <p>Analysts:
                             {% for analyst in eng.analysts.all %}
-                                {{ analyst }}{% if not loop.last %}, {% endif %}
+                                {{ analyst }}{% if not forloop.last %}, {% endif %}
                             {% endfor %}
                         </p>
                 </div>
