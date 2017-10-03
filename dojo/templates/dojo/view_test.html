@@ -98,7 +98,6 @@
                                     <option value="Critical">Critical</option>
                                 </select><br/><br/>
                                 <b>Status</b><br/>
-                                    <input id="id_active" name="active" type="checkbox"/> <span>Active</span>
                                 <label style="font-size: 80%; font-weight: normal; display: block">
                                     <input id="id_verified" name="verified" type="checkbox"/> <span>Verified</span>
                                 </label>
@@ -117,6 +116,12 @@
                         </li>
                     </ul>
                 </div>
+               <div class="pull-left hidden" id="bulk_remove_menu">
+                   <form action="{% url 'finding_bulk_remove' test.id %}" method="post" id="bulk_remove_form">
+                    {% csrf_token %}
+                        <input type="submit" class="btn btn-sm btn-primary" type="button" value="Bulk Remove"/>
+                    </form>
+               </div>
                 <div id="test-pulldown" class="dropdown pull-right">
                     <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenu1"
                             data-toggle="dropdown" aria-expanded="true">
@@ -173,7 +178,7 @@
                     <th>Reporter</th>
                     <th>Severity</th>
                     <th>Verified</th>
-                    <th>Duplicate</th>
+                    <th>False Positive</th>
                     {% if "enable_jira"|get_system_setting %}
                     <th>Jira</th>
                     {% endif %}
@@ -205,7 +210,7 @@
                             </span>
                         </td>
                         <td>{{ finding.verified }}</td>
-                        <td>{{ finding.duplicate }}</td>
+                        <td>{{ finding.false_positive }}</td>
                         {% if "enable_jira"|get_system_setting %}
                         <td>
                         <a href="{{finding.jira_conf.url}}/browse/{{finding.jira.jira_key}}" target="_blank"> {{finding.jira.jira_key}} </a>
@@ -464,14 +469,28 @@
                 });
             });
 
+            $('form#bulk_remove_form').on('submit', function(e){
+                $('input[type=checkbox].select_one:checked').each(function(){
+                    var hidden_input = $('<input type="hidden" value="' + this.id + '" name="finding_to_remove">')
+                    $('form#bulk_remove_form').append(hidden_input);
+                });
+            });
+
+            $('input.select_one').on('click', function() {
+                $('div#bulk_edit_menu').removeClass('hidden');
+                $('div#bulk_remove_menu').removeClass('hidden');
+            });
+
             $('input#select_all').on('click', function (e) {
                 if ($(this).is(":checked")) {
                     $('input.select_one').prop('checked', true);
                     $('div#bulk_edit_menu').removeClass('hidden');
+                    $('div#bulk_remove_menu').removeClass('hidden');
                 }
                 else {
                     $('input.select_one').prop('checked', false);
                     $('div#bulk_edit_menu').addClass('hidden');
+                    $('div#bulk_remove_menu').addClass('hidden');
                 }
             });
 
@@ -489,9 +508,11 @@
 
                 if ($(this).attr('id') == 'None') {
                     $('div#bulk_edit_menu').addClass('hidden');
+                    $('div#bulk_remove_menu').addClass('hidden');
                 }
                 else {
                     $('div#bulk_edit_menu').removeClass('hidden');
+                    $('div#bulk_remove_menu').removeClass('hidden');
                 }
             });
 

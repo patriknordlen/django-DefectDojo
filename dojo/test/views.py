@@ -424,6 +424,20 @@ def finding_bulk_update(request, tid):
 
     return HttpResponseRedirect(reverse('view_test', args=(test.id,)))
 
+@user_passes_test(lambda u: u.is_staff)
+def finding_bulk_remove(request, tid):
+    test = get_object_or_404(Test, id=tid)
+    finding = test.finding_set.all()[0]
+    if request.method == "POST":
+        finding_to_remove = request.POST.getlist('finding_to_remove')
+        removedcount = Finding.objects.filter(test=test, id__in=finding_to_remove).count()
+        Finding.objects.filter(test=test, id__in=finding_to_remove).delete()
+        messages.add_message(request,
+                                messages.SUCCESS,
+                                'Removed %s findings.' % removedcount,
+                                extra_tags='alert-success')
+
+    return HttpResponseRedirect(reverse('view_test', args=(test.id,)))
 
 @user_passes_test(lambda u: u.is_staff)
 def re_import_scan_results(request, tid):
