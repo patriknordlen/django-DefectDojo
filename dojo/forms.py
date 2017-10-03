@@ -481,7 +481,7 @@ class EngForm(forms.ModelForm):
         model = Engagement
         exclude = ('first_contacted', 'version', 'eng_type', 'real_start',
                    'real_end', 'requester', 'reason', 'updated', 'report_type',
-                   'product', 'executive_summary')
+                   'product')
 
 
 class EngForm2(forms.ModelForm):
@@ -496,7 +496,6 @@ class EngForm2(forms.ModelForm):
                            required=False,
                            help_text="Add tags that help describe this engagement.  "
                                      "Choose from the list or add new tags.  Press TAB key to add.")
-    executive_summary = forms.CharField(widget=TinyMCE(attrs={'cols':80,'rows':30},mce_attrs={'height':300,'content_style':'div, p { font-size: 15px; }'}))
     product = forms.ModelChoiceField(queryset=Product.objects.all())
     target_start = forms.DateField(widget=forms.TextInput(
         attrs={'class': 'datepicker'}))

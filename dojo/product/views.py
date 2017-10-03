@@ -434,7 +434,6 @@ def new_eng_for_app(request, pid):
         if form.is_valid():
             new_eng = form.save(commit=False)
             new_eng.product = prod
-            new_eng.executive_summary = render_to_string('dojo/report_executive_summary.html',{'engagement':new_eng})
             new_eng.save()
             form.save_m2m()
             if get_system_setting('enable_jira'):
