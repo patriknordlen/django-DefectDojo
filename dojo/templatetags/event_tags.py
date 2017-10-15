@@ -2,7 +2,7 @@ import re
 
 from django import template
 from django import forms
-
+from markdownx.widgets import MarkdownxWidget
 
 register = template.Library()
 
@@ -63,6 +63,10 @@ def is_multiple_checkbox(field):
 @register.filter
 def is_radio(field):
     return isinstance(field.field.widget, forms.RadioSelect)
+
+@register.filter
+def is_markdown(field):
+    return isinstance(field.field.widget, MarkdownxWidget)
 
 
 @register.filter

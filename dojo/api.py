@@ -373,8 +373,6 @@ class ProductResource(BaseModelResource):
 class EngagementResource(BaseModelResource):
     product = fields.ForeignKey(ProductResource, 'product',
                                 full=False, null=False)
-    lead = fields.ForeignKey(UserResource, 'lead',
-                             full=False, null=True)
 
     class Meta:
         resource_name = 'engagements'
@@ -389,7 +387,6 @@ class EngagementResource(BaseModelResource):
             'eng_type': ALL,
             'target_start': ALL,
             'target_end': ALL,
-            'requester': ALL,
             'report_type': ALL,
             'updated': ALL,
             'threat_model': ALL,
@@ -413,7 +410,6 @@ class EngagementResource(BaseModelResource):
             bundle.data['eng_type'] = None
         bundle.data['product_id'] = bundle.obj.product.id
         bundle.data['report_type'] = bundle.obj.report_type
-        bundle.data['requester'] = bundle.obj.requester
         return bundle
 
 
@@ -439,15 +435,12 @@ class TestResource(BaseModelResource):
         list_allowed_methods = ['get', 'post']
         # disabled delete. Should not be allowed without fine authorization.
         detail_allowed_methods = ['get', 'post', 'put']
-        queryset = Test.objects.all().order_by('target_end')
+        queryset = Test.objects.all()
         include_resource_uri = True
         filtering = {
             'id': ALL,
             'test_type': ALL,
-            'target_start': ALL,
-            'target_end': ALL,
             'notes': ALL,
-            'percent_complete': ALL,
             'actual_time': ALL,
             'engagement': ALL,
         }
@@ -462,14 +455,6 @@ class TestResource(BaseModelResource):
     def dehydrate(self, bundle):
         bundle.data['test_type'] = bundle.obj.test_type
         return bundle
-
-
-class RiskAcceptanceResource(BaseModelResource):
-    class Meta:
-        resource_name = 'risk_acceptances'
-        list_allowed_methods = ['get']
-        detail_allowed_methods = ['get']
-        queryset = Risk_Acceptance.objects.all().order_by('created')
 
 
 """
@@ -490,7 +475,6 @@ class RiskAcceptanceResource(BaseModelResource):
 class FindingResource(BaseModelResource):
     reporter = fields.ForeignKey(UserResource, 'reporter', null=False)
     test = fields.ForeignKey(TestResource, 'test', null=False)
-    risk_acceptance = fields.ManyToManyField(RiskAcceptanceResource, 'risk_acceptance', null=True)
     product = fields.ForeignKey(ProductResource, 'test__engagement__product', full=False, null=False)
     engagement = fields.ForeignKey(EngagementResource, 'test__engagement', full=False, null=False)
 
@@ -511,14 +495,12 @@ class FindingResource(BaseModelResource):
             'mitigated': ALL,
             'endpoint': ALL,
             'test': ALL_WITH_RELATIONS,
-            'active': ALL,
             'verified': ALL,
             'false_p': ALL,
             'reporter': ALL,
             'url': ALL,
             'out_of_scope': ALL,
             'duplicate': ALL,
-            'risk_acceptance': ALL,
             'engagement': ALL_WITH_RELATIONS,
             'product': ALL_WITH_RELATIONS
             #'build_id': ALL

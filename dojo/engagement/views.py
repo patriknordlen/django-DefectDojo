@@ -370,6 +370,8 @@ def import_scan_results(request, eid):
                     for endpoint in item.unsaved_endpoints:
                         ep, created = Endpoint.objects.get_or_create(protocol=endpoint.protocol,
                                                                      host=endpoint.host,
+                                                                     fqdn=endpoint.fqdn,
+                                                                     port=endpoint.port,
                                                                      path=endpoint.path,
                                                                      query=endpoint.query,
                                                                      fragment=endpoint.fragment,

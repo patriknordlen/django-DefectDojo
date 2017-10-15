@@ -31,6 +31,7 @@ from dojo.tool_product.urls import urlpatterns as tool_product_urls
 from dojo.cred.urls import urlpatterns as cred_urls
 from dojo.system_settings.urls import urlpatterns as system_settings_urls
 from dojo.notifications.urls import urlpatterns as notifications_urls
+from markdownx import urls as markdownx
 import sys
 
 admin.autodiscover()

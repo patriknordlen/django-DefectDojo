@@ -726,20 +726,12 @@ class EndpointReportFilter(DojoFilter):
 class ReportFindingFilter(DojoFilter):
     title = CharFilter(lookup_expr='icontains', label='Name')
     severity = MultipleChoiceFilter(choices=SEVERITY_CHOICES)
-    active = ReportBooleanFilter()
-    mitigated = MitigatedDateRangeFilter()
     verified = ReportBooleanFilter()
     false_p = ReportBooleanFilter(label="False Positive")
-    test__engagement__risk_acceptance = ReportRiskAcceptanceFilter(label="Risk Accepted")
-    duplicate = ReportBooleanFilter()
-    out_of_scope = ReportBooleanFilter()
 
     class Meta:
         model = Finding
-        exclude = ['date', 'cwe', 'url', 'description', 'mitigation', 'impact',
-                   'endpoint', 'references', 'test', 'is_template',
-                   'thread_id', 'notes', 'endpoints',
-                   'numerical_severity', 'reporter', 'last_reviewed', 'images']
+        fields = ['title','severity','false_p','verified']
 
 
 class ReportAuthedFindingFilter(DojoFilter):
