@@ -22,6 +22,7 @@ from pytz import all_timezones
 from tagging.registry import register as tag_register
 from multiselectfield import MultiSelectField
 from math import ceil
+from markdownx.models import MarkdownxField
 
 class System_Settings(models.Model):
     enable_deduplication = models.BooleanField(default=False, 

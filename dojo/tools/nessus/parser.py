@@ -187,6 +187,9 @@ class NessusXMLParser(object):
                         find = dupes[dupe_key]
                         if plugin_output is not None:
                             find.description += plugin_output
+                        e = Endpoint(host=ip, fqdn=fqdn, port=port)
+                        if e not in find.unsaved_endpoints:
+                            find.unsaved_endpoints.append(e)
                     else:
                         find = Finding(title=title,
                                        test=test,
@@ -200,9 +203,7 @@ class NessusXMLParser(object):
                                        cwe=cwe)
                         find.unsaved_endpoints = list()
                         dupes[dupe_key] = find
-                    find.unsaved_endpoints.append(Endpoint(host=ip, port=port))
-
-                    if fqdn is not None:
-                        find.unsaved_endpoints.append(Endpoint(host=fqdn, port=port))
+                        find.unsaved_endpoints.append(Endpoint(host=ip, fqdn=fqdn, port=port))
+                        print "Adding new endpoint: %s %s %s" % (ip, fqdn, port)
 
         self.items = dupes.values()
