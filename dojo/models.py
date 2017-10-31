@@ -399,7 +399,8 @@ class Engagement(models.Model):
     active = models.BooleanField(default=True, editable=False)
     status = models.CharField(editable=True, max_length=2000, default='',
                               null=True,
-                              choices=(('Planned', 'Planned'),
+                              choices=(('Preliminary','Preliminary'),
+                                       ('Planned', 'Planned'),
                                        ('In Progress', 'In Progress'),
                                        ('On Hold', 'On Hold'),
                                        ('Completed', 'Completed')))
