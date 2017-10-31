@@ -70,6 +70,9 @@
                         <thead>
                         <tr>
                             <th>Title</th>
+                            <th>Customer</th>
+                            <th>Product</th>
+                            <th>Engagement</th>
                             <th>Date</th>
                         </tr>
                         </thead>
@@ -84,6 +87,9 @@
                                         {% endfor %}
                                       </sup>
                                 </td>
+                                <td>{{ finding.object.test.engagement.product.customer }}</td>
+                                <td>{{ finding.object.test.engagement.product }}</td>
+                                <td>{{ finding.object.test.engagement.name }}</td>
                                 <td>{{ finding.object.date }}</td>
                             </tr>
                         {% endfor %}
