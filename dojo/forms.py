@@ -225,9 +225,8 @@ class CustomerProductForm(forms.ModelForm):
         required=False, label="Authorized Users")
 
     def __init__(self, *args, **kwargs):
-        non_staff = User.objects.exclude(is_staff=True)
         super(CustomerProductForm, self).__init__(*args, **kwargs)
-        self.fields['authorized_users'].queryset = non_staff
+        self.fields['authorized_users'].queryset = Dojo_User.objects.all()
 
     class Meta:
         model = Product
