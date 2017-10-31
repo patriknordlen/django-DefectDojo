@@ -442,7 +442,7 @@ class Endpoint(models.Model):
                                       "'127.0.0.1', '127.0.0.1:8080', 'localhost', 'yourdomain.com'.")
     fqdn = models.CharField(null=True, blank=True, max_length=500)
     port = models.IntegerField(null=True, blank=True, help_text="The network port associated with the endpoint.")
-    path = models.CharField(null=True, blank=True, max_length=500,
+    path = models.CharField(null=True, blank=True, max_length=2000,
                             help_text="The location of the resource, it should start with a '/'. For example"
                                       "/endpoint/420/edit")
     query = models.CharField(null=True, blank=True, max_length=5000,
