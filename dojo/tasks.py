@@ -15,7 +15,7 @@ from celery.decorators import task
 from dojo.models import Finding, Test, Engagement
 from django.utils import timezone
 
-from docxtpl import DocxTemplate, RichText
+from docxtpl import DocxTemplate, RichText, Markdown
 from StringIO import StringIO
 import pdfkit
 import sys
@@ -63,11 +63,11 @@ def async_docx_report(self,
 
     def add_rt_fields(findings):
         for finding in findings:
-            finding.description_rt = RichText(finding.description)
-            finding.impact_rt = RichText(finding.impact)
-            finding.mitigation_rt = RichText(finding.mitigation)
-            finding.references_rt = RichText(finding.references)
-            finding.title_rt = RichText(finding.title)
+            finding.description_rt = Markdown(finding.description)
+            finding.impact_rt = Markdown(finding.impact)
+            finding.mitigation_rt = Markdown(finding.mitigation)
+            finding.references_rt = Markdown(finding.references)
+            finding.title_rt = Markdown(finding.title)
         return findings
 
     try:
