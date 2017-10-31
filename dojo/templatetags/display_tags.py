@@ -165,4 +165,7 @@ def severity_value(value):
 
 @register.filter
 def show_markdown(text):
-    return mark_safe(markdownify(text))
+    if text is not None:
+        return mark_safe(markdownify(text))
+    else:
+        return ''
