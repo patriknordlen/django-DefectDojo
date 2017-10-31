@@ -102,6 +102,7 @@ urlpatterns = [
     url(r'^%shistory/(?P<cid>\d+)/(?P<oid>\d+)$' % get_system_setting('url_prefix'), views.action_history,
         name='action_history'),
     url(r'^%s' % get_system_setting('url_prefix'), include(ur)),
+    url(r'^markdownx/', include('markdownx.urls')),
 ]
 
 if settings.DEBUG:
