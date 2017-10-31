@@ -104,7 +104,7 @@
         <div class="panel-body description">
             {{ eng.description }}
         </div>
-        <div class="panel-body product-graphs">
+        <!-- <div class="panel-body product-graphs">
             <div class="col-md-3">
                 <div class="panel panel-default">
                     <div class="panel-heading">
@@ -214,8 +214,27 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </div> -->
     </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="panel panel-default">
+                <div class="panel-heading"><h4>Executive summary</h4></div>
+                <div class="panel-body">
+                    {{ eng.executive_summary|show_markdown }}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+                <div class="panel panel-default">
+                    <div class="panel-heading"><h4>Technical summary</h4></div>
+                    <div class="panel-body">
+                        {{ eng.technical_summary|show_markdown }}
+                    </div>
+                </div>
+            </div>
+        </div>
 
     <div class="row same-height-panel-row">
         <div class="col-md-4">
@@ -334,7 +353,7 @@
     </div>
 
     <!--Cred Begin-->
-    <div class="row">
+    <!-- <div class="row">
     <div class="col-md-12" id="cred">
         <div class="panel panel-default">
             <div class="panel-heading">
@@ -423,7 +442,7 @@
                       {% endif %}
                     </p>
                 </div>
-            {% endif %}
+            {% endif %} -->
         </div>
     </div>
 </div>
