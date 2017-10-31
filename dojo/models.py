@@ -735,44 +735,30 @@ class Finding(models.Model):
     SEVERITIES = {'Info': 4, 'Low': 3, 'Medium': 2,
                   'High': 1, 'Critical': 0}
 
+    sev_cvss_mapping = {'Info': 0, 'Low': 3, 'Medium': 6,
+                        'High': 9, 'Critical': 10}
+
     class Meta:
         ordering = ('numerical_severity', '-date', 'title')
 
+
     @property
     def cvss_vector(self):
-        if not self.cvss_c:
-            return 'N/A'
+        if self.cvss3 is not None:
+            return self.cvss3.vector
+        elif self.cvss2 is not None:
+            return self.cvss2.vector
         else:
-            return 'CVSS:3.0/' + '/'.join(["%s:%s" % (f.name[5:].upper(), getattr(self, f.name)) for f in self._meta.fields if f.name.startswith('cvss_')])
+            return 'N/A'
     
     @property
-    def cvss_score(self):
-        weights = {'AV':{'N':0.85,'AN':0.62,'L':0.55,'P':0.2},
-                   'AC':{'L':0.77,'H':0.44},
-                   'PR':{'N':0.85,'L':0.62,'H':0.27}, # TODO - these change if scope is changed
-                   'UI':{'N':0.85,'R':0.62},
-                   'C':{'H':0.56,'L':0.22,'N':0},
-                   'I':{'H':0.56,'L':0.22,'N':0},
-                   'A':{'H':0.56,'L':0.22,'N':0}}
-
-        isc_base = 1 - ((1-weights['C'][self.cvss_c])*(1-weights['I'][self.cvss_i])*(1-weights['A'][self.cvss_a]))
-
-        if self.cvss_s == 'U':
-            impact_score = 6.42 * isc_base
+    def new_sev(self):
+        if self.cvss3 is not None:
+            return self.cvss3.score
+        elif self.cvss2 is not None:
+            return self.cvss2.score
         else:
-            impact_score = 7.52 * (isc_base - 0.029) - 3.25 * pow(isc_base - 0.02, 15)
-
-        if impact_score < 0:
-            return 0
-
-        exploitability_score = 8.22 * weights['AV'][self.cvss_av] * weights['AC'][self.cvss_ac] * weights['PR'][self.cvss_pr] * weights['UI'][self.cvss_ui]
-
-        if self.cvss_s == 'U':
-            score = ceil(min([(impact_score + exploitability_score),10])*10.0) / 10.0
-        else:
-            score = ceil(min([1.08 * (impact_score + exploitability_score),10])*10.0) / 10.0
-
-        return score
+            return self.sev_cvss_mapping[self.severity]
 
     @staticmethod
     def get_numerical_severity(severity):
@@ -884,18 +870,6 @@ class Finding(models.Model):
                 'url': reverse('view_finding', args=(self.id,))}]
         return bc
 
-    @property
-    def severity_color(self):
-        if self.severity == 'Info':
-            return '888888'
-        elif self.severity == 'Low':
-            return '337ab7'
-        elif self.severity == 'Medium':
-            return 'FBE413'
-        elif self.severity == 'High':
-            return 'f09835'
-        elif self.severity == 'Critical':
-            return 'f09835'
 
         # def get_request(self):
         #     if self.burprawrequestresponse_set.count() > 0:
