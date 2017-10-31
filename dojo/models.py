@@ -570,18 +570,124 @@ class VA(models.Model):
     status = models.BooleanField(default=False, editable=False)
     start = models.CharField(max_length=100)
 
+class CVSSv2(models.Model):
+    AV_CHOICES = (('L','Local'),('AN','Adjacent Network'),('N','Network'))
+    AC_CHOICES = (('L','Low'),('M','Medium'),('H','High'))
+    AU_CHOICES = (('M','Multiple'),('S','Single'),('N','None'))
+    C_CHOICES = (('N','None'),('P','Partial'),('C','Complete'))
+    I_CHOICES = (('N','None'),('P','Partial'),('C','Complete'))
+    A_CHOICES = (('N','None'),('P','Partial'),('C','Complete'))
 
+    av = models.CharField(null=True, max_length=2,
+                          choices=AV_CHOICES)
+    ac = models.CharField(null=True, max_length=1,
+                          choices=AC_CHOICES)
+    au = models.CharField(null=True, max_length=1,
+                          choices=AU_CHOICES)
+    c = models.CharField(null=True, max_length=1,
+                          choices=C_CHOICES)
+    i = models.CharField(null=True, max_length=1,
+                          choices=I_CHOICES)
+    a = models.CharField(null=True, max_length=1,
+                          choices=A_CHOICES)
+
+    def fromvector(self, vector):
+        for k,v in [i.split(':') for i in vector.split('#')[1].split('/')]:
+            setattr(self, k.lower(), v)
+
+    @property
+    def vector(self):
+        if not self.c:
+            return 'N/A'
+        else:
+            return 'CVSS2#' + '/'.join(["%s:%s" % (f.name.upper(), getattr(self, f.name)) for f in self._meta.fields if f != self._meta.auto_field])
+    
+    @property
+    def score(self):
+        weights = {'AV':{'N':1,'AN':0.646,'L':0.395},
+                   'AC':{'L':0.71,'M':0.61,'H':0.35},
+                   'AU':{'N':0.704,'S':0.56,'M':0.45},
+                   'C':{'C':0.66,'P':0.275,'N':0},
+                   'I':{'C':0.66,'P':0.275,'N':0},
+                   'A':{'C':0.66,'P':0.275,'N':0}}
+
+        impact_score = 10.41 * (1 - (1-weights['C'][self.c])*(1-weights['I'][self.i])*(1-weights['A'][self.a]))
+
+        if impact_score == 0:
+            return 0
+
+        exploitability_score = 20 * weights['AV'][self.av] * weights['AC'][self.ac] * weights['AU'][self.au]
+
+        score = ceil(1.176 * (0.6 * impact_score + 0.4 * exploitability_score - 1.5) * 10.0) / 10.0
+
+        return score
+
+class CVSSv3(models.Model):
+    AV_CHOICES = (('N','Network'),('AN','Adjacent Network'),('L','Local'),('P','Physical'))
+    AC_CHOICES = (('L','Low'),('H','High'))
+    PR_CHOICES = (('N','None'),('L','Low'),('H','High'))
+    UI_CHOICES = (('N','None'),('R','Required'))
+    S_CHOICES = (('U','Unchanged'),('C','Changed'))
+    C_CHOICES = (('N','None'),('L','Low'),('H','High'))
+    I_CHOICES = (('N','None'),('L','Low'),('H','High'))
+    A_CHOICES = (('N','None'),('L','Low'),('H','High'))
+
+    av = models.CharField(null=True, max_length=2,
+                          choices=AV_CHOICES)
+    ac = models.CharField(null=True, max_length=1,
+                          choices=AC_CHOICES)
+    pr = models.CharField(null=True, max_length=1,
+                          choices=PR_CHOICES)
+    ui = models.CharField(null=True, max_length=1,
+                          choices=UI_CHOICES)
+    s = models.CharField(null=True, max_length=1,
+                          choices=S_CHOICES)
+    c = models.CharField(null=True, max_length=1,
+                          choices=C_CHOICES)
+    i = models.CharField(null=True, max_length=1,
+                          choices=I_CHOICES)
+    a = models.CharField(null=True, max_length=1,
+                          choices=A_CHOICES)
+
+
+    @property
+    def vector(self):
+        if self.c:
+            return 'CVSS:3.0/' + '/'.join(["%s:%s" % (f.name.upper(), getattr(self, f.name)) for f in self._meta.fields if f != self._meta.auto_field])
+        else:
+            return 'N/A'
+            
+    
+    @property
+    def score(self):
+        weights = {'AV':{'N':0.85,'AN':0.62,'L':0.55,'P':0.2},
+                   'AC':{'L':0.77,'H':0.44},
+                   'PR':{'N':0.85,'L':0.62,'H':0.27}, # TODO - these change if scope is changed
+                   'UI':{'N':0.85,'R':0.62},
+                   'C':{'H':0.56,'L':0.22,'N':0},
+                   'I':{'H':0.56,'L':0.22,'N':0},
+                   'A':{'H':0.56,'L':0.22,'N':0}}
+
+        isc_base = 1 - ((1-weights['C'][self.c])*(1-weights['I'][self.i])*(1-weights['A'][self.a]))
+
+        if self.s == 'U':
+            impact_score = 6.42 * isc_base
+        else:
+            impact_score = 7.52 * (isc_base - 0.029) - 3.25 * pow(isc_base - 0.02, 15)
+
+        if impact_score < 0:
+            return 0
+
+        exploitability_score = 8.22 * weights['AV'][self.av] * weights['AC'][self.ac] * weights['PR'][self.pr] * weights['UI'][self.ui]
+
+        if self.s == 'U':
+            score = ceil(min([(impact_score + exploitability_score),10])*10.0) / 10.0
+        else:
+            score = ceil(min([1.08 * (impact_score + exploitability_score),10])*10.0) / 10.0
+
+        return score
 
 class Finding(models.Model):
-    CVSS_AV_CHOICES = (('L','Local'),('AN','Adjacent Network'),('N','Network'),('P','Physical'))
-    CVSS_AC_CHOICES = (('L','Low'),('H','High'))
-    CVSS_PR_CHOICES = (('N','None'),('L','Low'),('H','High'))
-    CVSS_UI_CHOICES = (('N','None'),('R','Required'))
-    CVSS_S_CHOICES = (('U','Unchanged'),('C','Changed'))
-    CVSS_C_CHOICES = (('N','None'),('L','Low'),('H','High'))
-    CVSS_I_CHOICES = (('N','None'),('L','Low'),('H','High'))
-    CVSS_A_CHOICES = (('N','None'),('L','Low'),('H','High'))
-
     title = models.TextField(max_length=1000)
     date = models.DateField(default=get_current_date)
     cwe = models.IntegerField(default=0, null=True, blank=True)
@@ -598,23 +704,8 @@ class Finding(models.Model):
     references = models.TextField(null=True, blank=True, db_column="refs")
     test = models.ForeignKey(Test, editable=False)
 
-    cvss_av = models.CharField(null=True, max_length=2,
-                               choices=CVSS_AV_CHOICES)
-    cvss_ac = models.CharField(null=True, max_length=1,
-                               choices=CVSS_AC_CHOICES)
-    cvss_pr = models.CharField(null=True, max_length=1,
-                               choices=CVSS_PR_CHOICES)
-    cvss_ui = models.CharField(null=True, max_length=1,
-                               choices=CVSS_UI_CHOICES)
-    cvss_s = models.CharField(null=True, max_length=1,
-                               choices=CVSS_S_CHOICES)
-    cvss_c = models.CharField(null=True, max_length=1,
-                               choices=CVSS_C_CHOICES)
-    cvss_i = models.CharField(null=True, max_length=1,
-                               choices=CVSS_I_CHOICES)
-    cvss_a = models.CharField(null=True, max_length=1,
-                               choices=CVSS_A_CHOICES)
-
+    cvss2 = models.ForeignKey(CVSSv2, null=True)
+    cvss3 = models.ForeignKey(CVSSv3, null=True)
 
     # TODO: Will be deprecated soon
     is_template = models.BooleanField(default=False)

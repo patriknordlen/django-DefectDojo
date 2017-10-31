@@ -27,7 +27,7 @@ from dojo.filters import OpenFindingFilter, \
     ClosedFingingSuperFilter, TemplateFindingFilter
 from dojo.forms import NoteForm, CloseFindingForm, FindingForm, PromoteFindingForm, FindingTemplateForm, \
     DeleteFindingTemplateForm, FindingImageFormSet, JIRAFindingForm, ReviewFindingForm, ClearFindingReviewForm, \
-    DefectFindingForm, StubFindingForm
+    DefectFindingForm, StubFindingForm, CVSSv3Form
 from dojo.models import Customer, Finding, Notes, \
     Risk_Acceptance, BurpRawRequestResponse, Stub_Finding, Endpoint, Finding_Template, FindingImage, \
     FindingImageAccessToken, JIRA_Issue, JIRA_PKey, JIRA_Conf, Dojo_User, Cred_User, Cred_Mapping, Test
@@ -346,8 +346,9 @@ def delete_finding(request, fid):
 def edit_finding(request, fid):
     finding = get_object_or_404(Finding, id=fid)
     old_status = finding.status()
-    form = FindingForm(instance=finding)
-    form.initial['tags'] = [tag.name for tag in finding.tags]
+    fform = FindingForm(instance=finding)
+    cform = CVSSv3Form(instance=finding.cvss3)
+    fform.initial['tags'] = [tag.name for tag in finding.tags]
     form_error = False
     jform = None
     try:
@@ -361,9 +362,12 @@ def edit_finding(request, fid):
         jform = JIRAFindingForm(enabled=enabled, prefix='jiraform')
 
     if request.method == 'POST':
-        form = FindingForm(request.POST, instance=finding)
-        if form.is_valid():
-            new_finding = form.save(commit=False)
+        fform = FindingForm(request.POST, instance=finding)
+        cform = CVSSv3Form(request.POST, instance=finding.cvss3)
+        if cform.is_valid():
+            cform.save()
+        if fform.is_valid():
+            new_finding = fform.save(commit=False)
             new_finding.test = finding.test
             new_finding.numerical_severity = Finding.get_numerical_severity(
                 new_finding.severity)
@@ -374,7 +378,7 @@ def edit_finding(request, fid):
             create_template = new_finding.is_template
             # always false now since this will be deprecated soon in favor of new Finding_Template model
             new_finding.is_template = False
-            new_finding.endpoints = form.cleaned_data['endpoints']
+            new_finding.endpoints = fform.cleaned_data['endpoints']
             new_finding.last_reviewed = timezone.now()
             new_finding.last_reviewed_by = request.user
             tags = request.POST.getlist('tags')
@@ -429,13 +433,14 @@ def edit_finding(request, fid):
             form_error = True
 
     if form_error and 'endpoints' in form.cleaned_data:
-        form.fields['endpoints'].queryset = form.cleaned_data['endpoints']
+        fform.fields['endpoints'].queryset = fform.cleaned_data['endpoints']
     else:
-        form.fields['endpoints'].queryset = finding.endpoints.all()
-    form.initial['tags'] = [tag.name for tag in finding.tags]
+        fform.fields['endpoints'].queryset = finding.endpoints.all()
+    fform.initial['tags'] = [tag.name for tag in finding.tags]
     add_breadcrumb(parent=finding, title="Edit", top_level=False, request=request)
     return render(request, 'dojo/edit_findings.html',
-                  {'form': form,
+                  {'fform': fform,
+                   'cform': cform,
                    'finding': finding,
                    'jform' : jform
                    })

@@ -20,7 +20,7 @@ from dojo.models import Finding, Customer, Product, ScanSettings, VA, \
     Check_List, User, Engagement, Test, Test_Type, Notes, Risk_Acceptance, \
     Development_Environment, Dojo_User, Scan, Endpoint, Stub_Finding, Finding_Template, Report, FindingImage, \
     JIRA_Issue, JIRA_PKey, JIRA_Conf, UserContactInfo, Tool_Type, Tool_Configuration, Tool_Product_Settings, \
-    Cred_User, Cred_Mapping, System_Settings, Notifications
+    Cred_User, Cred_Mapping, System_Settings, Notifications, CVSSv2, CVSSv3
 from dojo.utils import get_system_setting
 from tinymce.widgets import TinyMCE
 
@@ -480,7 +480,7 @@ class EngForm(forms.ModelForm):
         model = Engagement
         exclude = ('first_contacted', 'version', 'eng_type', 'real_start',
                    'real_end', 'requester', 'reason', 'updated', 'report_type',
-                   'product')
+                   'product','executive_summary','technical_summary')
 
 
 class EngForm2(forms.ModelForm):
@@ -572,23 +572,25 @@ class DeleteTestForm(forms.ModelForm):
                    'lead')
 
 
+class CVSSv3Form(forms.ModelForm):
+    av = forms.ChoiceField(label='CVSS Access Vector (AV)', choices=CVSSv3.AV_CHOICES, widget=CVSSSelect, required=False)
+    ac = forms.ChoiceField(label='CVSS Access Complexity (AC)', choices=CVSSv3.AC_CHOICES, widget=CVSSSelect, required=False)
+    pr = forms.ChoiceField(label='CVSS Privileges Required (PR)', choices=CVSSv3.PR_CHOICES, widget=CVSSSelect, required=False)
+    ui = forms.ChoiceField(label='CVSS User Interaction (UI)', choices=CVSSv3.UI_CHOICES, widget=CVSSSelect, required=False)
+    s = forms.ChoiceField(label='CVSS Scope (S)', choices=CVSSv3.S_CHOICES, widget=CVSSSelect, required=False)
+    c = forms.ChoiceField(label='CVSS Confidentiality (C)', choices=CVSSv3.C_CHOICES, widget=CVSSSelect, required=False)
+    i = forms.ChoiceField(label='CVSS Integrity (I)', choices=CVSSv3.I_CHOICES, widget=CVSSSelect, required=False)
+    a = forms.ChoiceField(label='CVSS Availability (A)', choices=CVSSv3.A_CHOICES, widget=CVSSSelect, required=False)
+
+    class Meta:
+        model = CVSSv3
+        exclude = ['']
+
 class AddFindingForm(forms.ModelForm):
     title = forms.CharField(max_length=1000)
-    date = forms.DateField(required=True,
-                           widget=forms.TextInput(attrs={'class':
-                                                             'datepicker'}))
-    cwe = forms.IntegerField(required=False)
     severity_options = (('Low', 'Low'), ('Medium', 'Medium'),
                         ('High', 'High'), ('Critical', 'Critical'))
     description = forms.CharField(widget=forms.Textarea)
-    cvss_av = forms.ChoiceField(label='CVSS Access Vector (AV)', choices=Finding.CVSS_AV_CHOICES, widget=CVSSSelect, required=False)
-    cvss_ac = forms.ChoiceField(label='CVSS Access Complexity (AC)', choices=Finding.CVSS_AC_CHOICES, widget=CVSSSelect, required=False)
-    cvss_pr = forms.ChoiceField(label='CVSS Privileges Required (PR)', choices=Finding.CVSS_PR_CHOICES, widget=CVSSSelect, required=False)
-    cvss_ui = forms.ChoiceField(label='CVSS User Interaction (UI)', choices=Finding.CVSS_UI_CHOICES, widget=CVSSSelect, required=False)
-    cvss_s = forms.ChoiceField(label='CVSS Scope (S)', choices=Finding.CVSS_S_CHOICES, widget=CVSSSelect, required=False)
-    cvss_c = forms.ChoiceField(label='CVSS Confidentiality (C)', choices=Finding.CVSS_C_CHOICES, widget=CVSSSelect, required=False)
-    cvss_i = forms.ChoiceField(label='CVSS Integrity (I)', choices=Finding.CVSS_I_CHOICES, widget=CVSSSelect, required=False)
-    cvss_a = forms.ChoiceField(label='CVSS Availability (A)', choices=Finding.CVSS_A_CHOICES, widget=CVSSSelect, required=False)
     mitigation = forms.CharField(widget=forms.Textarea)
     impact = forms.CharField(widget=forms.Textarea)
     endpoints = forms.ModelMultipleChoiceField(Endpoint.objects, required=False, label='Systems / Endpoints',
@@ -610,8 +612,8 @@ class AddFindingForm(forms.ModelForm):
 
     class Meta:
         model = Finding
-        order = ('title', 'cvss_av', 'endpoints', 'description', 'impact')
-        exclude = ('reporter', 'url', 'numerical_severity', 'endpoint', 'images', 'under_review', 'reviewers',
+        order = ('title', 'endpoints', 'description', 'impact')
+        exclude = ('reporter', 'cwe', 'url', 'cvss2', 'cvss3', 'severity', 'date', 'numerical_severity', 'endpoint', 'images', 'under_review', 'reviewers',
                    'review_requested_by')
 
 
@@ -687,18 +689,7 @@ class FindingForm(forms.ModelForm):
     date = forms.DateField(required=True,
                            widget=forms.TextInput(attrs={'class':
                                                              'datepicker'}))
-    cwe = forms.IntegerField(required=False)
-    severity_options = (('Low', 'Low'), ('Medium', 'Medium'),
-                        ('High', 'High'), ('Critical', 'Critical'))
     description = forms.CharField(widget=forms.Textarea)
-    cvss_av = forms.ChoiceField(label='CVSS Access Vector (AV)', choices=Finding.CVSS_AV_CHOICES, widget=CVSSSelect, required=False)
-    cvss_ac = forms.ChoiceField(label='CVSS Access Complexity (AC)', choices=Finding.CVSS_AC_CHOICES, widget=CVSSSelect, required=False)
-    cvss_pr = forms.ChoiceField(label='CVSS Privileges Required (PR)', choices=Finding.CVSS_PR_CHOICES, widget=CVSSSelect, required=False)
-    cvss_ui = forms.ChoiceField(label='CVSS User Interaction (UI)', choices=Finding.CVSS_UI_CHOICES, widget=CVSSSelect, required=False)
-    cvss_s = forms.ChoiceField(label='CVSS Scope (S)', choices=Finding.CVSS_S_CHOICES, widget=CVSSSelect, required=False)
-    cvss_c = forms.ChoiceField(label='CVSS Confidentiality (C)', choices=Finding.CVSS_C_CHOICES, widget=CVSSSelect, required=False)
-    cvss_i = forms.ChoiceField(label='CVSS Integrity (I)', choices=Finding.CVSS_I_CHOICES, widget=CVSSSelect, required=False)
-    cvss_a = forms.ChoiceField(label='CVSS Availability (A)', choices=Finding.CVSS_A_CHOICES, widget=CVSSSelect, required=False)
     mitigation = forms.CharField(widget=forms.Textarea)
     impact = forms.CharField(widget=forms.Textarea)
     endpoints = forms.ModelMultipleChoiceField(Endpoint.objects, required=False, label='Systems / Endpoints',
@@ -730,7 +721,7 @@ class FindingForm(forms.ModelForm):
     class Meta:
         model = Finding
         order = ('title', 'severity', 'endpoints', 'description', 'impact')
-        exclude = ('reporter', 'url', 'numerical_severity', 'endpoint', 'images', 'under_review', 'reviewers',
+        exclude = ('reporter', 'cvss2', 'cvss3', 'severity', 'cwe', 'url', 'numerical_severity', 'endpoint', 'images', 'under_review', 'reviewers',
                    'review_requested_by')
 
 
@@ -798,7 +789,7 @@ class FindingBulkUpdateForm(forms.ModelForm):
 
     class Meta:
         model = Finding
-        fields = ('severity', 'verified', 'false_p', 'duplicate', 'out_of_scope')
+        fields = ('severity','verified', 'false_p', 'duplicate', 'out_of_scope')
 
 
 class EditEndpointForm(forms.ModelForm):

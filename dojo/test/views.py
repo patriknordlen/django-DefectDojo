@@ -17,7 +17,7 @@ from django.utils import timezone
 
 from dojo.filters import TemplateFindingFilter
 from dojo.forms import NoteForm, TestForm, FindingForm, \
-    DeleteTestForm, AddFindingForm, \
+    DeleteTestForm, AddFindingForm, CVSSv3Form, \
     ImportScanForm, ReImportScanForm, FindingBulkUpdateForm, JIRAFindingForm
 from dojo.models import Finding, Test, Notes, \
     BurpRawRequestResponse, Endpoint, Stub_Finding, Finding_Template, JIRA_PKey, Cred_User, Cred_Mapping, Dojo_User
@@ -199,7 +199,8 @@ def add_findings(request, tid):
     form_error = False
     enabled = False
     jform = None
-    form = AddFindingForm(initial={'date': timezone.now().date()})
+    fform = AddFindingForm(initial={'date': timezone.now().date()})
+    cform = CVSSv3Form()
 
     if get_system_setting('enable_jira') and JIRA_PKey.objects.filter(product=test.engagement.product).count() != 0:
         enabled = JIRA_PKey.objects.get(product=test.engagement.product).push_all_issues
@@ -208,10 +209,14 @@ def add_findings(request, tid):
         jform = None
 
     if request.method == 'POST':
-        form = AddFindingForm(request.POST)
-        if form.is_valid():
-            new_finding = form.save(commit=False)
+        fform = AddFindingForm(request.POST)
+        cform = CVSSv3Form(request.POST)
+        if cform.is_valid():
+            cvss3 = cform.save()
+        if fform.is_valid():
+            new_finding = fform.save(commit=False)
             new_finding.test = test
+            new_finding.cvss3 = cvss3
             new_finding.reporter = request.user
             new_finding.numerical_severity = Finding.get_numerical_severity(
                 new_finding.severity)
@@ -222,7 +227,7 @@ def add_findings(request, tid):
             # always false now since this will be deprecated soon in favor of new Finding_Template model
             new_finding.is_template = False
             new_finding.save()
-            new_finding.endpoints = form.cleaned_data['endpoints']
+            new_finding.endpoints = fform.cleaned_data['endpoints']
             new_finding.save()
             if 'jiraform-push_to_jira' in request.POST:
                 jform = JIRAFindingForm(request.POST, prefix='jiraform', enabled=enabled)
@@ -259,10 +264,10 @@ def add_findings(request, tid):
             else:
                 return HttpResponseRedirect(reverse('add_findings', args=(test.id,)))
         else:
-            if 'endpoints' in form.cleaned_data:
-                form.fields['endpoints'].queryset = form.cleaned_data['endpoints']
+            if 'endpoints' in fform.cleaned_data:
+                fform.fields['endpoints'].queryset = fform.cleaned_data['endpoints']
             else:
-                form.fields['endpoints'].queryset = Endpoint.objects.none()
+                fform.fields['endpoints'].queryset = Endpoint.objects.none()
             form_error = True
             messages.add_message(request,
                                  messages.ERROR,
@@ -270,7 +275,8 @@ def add_findings(request, tid):
                                  extra_tags='alert-danger')
     add_breadcrumb(parent=test, title="Add Finding", top_level=False, request=request)
     return render(request, 'dojo/add_findings.html',
-                  {'form': form,
+                  {'fform': fform,
+                   'cform': cform,
                    'test': test,
                    'temp': False,
                    'tid': tid,

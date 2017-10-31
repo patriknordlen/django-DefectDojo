@@ -9,7 +9,7 @@
     {% if temp %}
         <form class="form-horizontal" action="{% url 'add_temp_finding' tid fid %}" method="post">
             {% csrf_token %}
-            {% include "dojo/form_fields.html" with form=form %}
+            {% include "dojo/form_fields.html" with form=fform %}
             {%  if jform %}
                 <h4> JIRA </h4>
                 <h4>
@@ -25,7 +25,8 @@
     {% else %}
         <form class="form-horizontal" action="{% url 'add_findings' tid %}" method="post">
             {% csrf_token %}
-            {% include "dojo/form_fields.html" with form=form %}
+            {% include "dojo/form_fields.html" with form=cform %}
+            {% include "dojo/form_fields.html" with form=fform %}
             {%  if jform %}
                 <h4> JIRA </h4>
                 <hr>
