@@ -1,6 +1,7 @@
 import base64
 import os
 import re
+import operator
 from datetime import datetime
 from uuid import uuid4
 
@@ -760,6 +761,12 @@ class Finding(models.Model):
             return self.cvss2.score
         else:
             return self.sev_cvss_mapping[self.severity]
+
+    @property
+    def new_sev_level(self):
+        for level,score in sorted(self.cvss_mapping.items(), key=operator.itemgetter(1), reverse=True):
+            if self.new_sev >= score:
+                return self.level
 
     @staticmethod
     def get_numerical_severity(severity):
