@@ -764,7 +764,7 @@ class Finding(models.Model):
 
     @property
     def new_sev_level(self):
-        for level,score in sorted(self.cvss_mapping.items(), key=operator.itemgetter(1), reverse=True):
+        for level,score in sorted(self.sev_cvss_mapping.items(), key=operator.itemgetter(1), reverse=True):
             if self.new_sev >= score:
                 return self.level
 
