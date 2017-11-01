@@ -766,7 +766,7 @@ class Finding(models.Model):
     def new_sev_level(self):
         for level,score in sorted(self.sev_cvss_mapping.items(), key=operator.itemgetter(1), reverse=True):
             if self.new_sev >= score:
-                return self.level
+                return level
 
     @staticmethod
     def get_numerical_severity(severity):
