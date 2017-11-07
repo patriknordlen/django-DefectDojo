@@ -324,7 +324,7 @@
                 $.each(data, function(i, elem) {
                     $('#engagement-container-' + pid).append('<li><a href="/engagement/' + elem.pk + '">' + elem.fields.name + '</a></li>');
                 });
-                $('#engagement-container-' + pid).append('<li><a href="/engagement/' + pid + '/add_engagement"><i class="fa fa-fw fa-plus"></i> Add engagement</a></li>');
+                $('#engagement-container-' + pid).append('<li><a href="/product/' + pid + '/new_engagement"><i class="fa fa-fw fa-plus"></i> Add engagement</a></li>');
             });
         }
 
