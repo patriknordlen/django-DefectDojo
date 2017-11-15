@@ -36,6 +36,18 @@
     <script type="application/javascript" src="{% static "chosen/chosen.jquery.min.js" %}"></script>
     <script>
           $(function () {
+            function randomcolor() {
+                colstr = "#";
+                for (i = 0; i < 3; i++) {
+                    c = (128*Math.random()|0).toString(16);
+                    if (c.length < 2) { c = "0" + c; }
+                    colstr += c;
+                }
+
+                return colstr;
+            }
+
+
             $('#caltype').change(function() { $('#calfilter').attr('action', '/calendar/' + $(this).val()); });
             $(".chosen-select").chosen({disable_search_threshold: 10});
             $('#caltype').val('{{ caltype }}'); $('#caltype').trigger('change');
@@ -68,7 +80,7 @@
                                 start: '{{e.target_start|date:"c"}}',
                                 end: '{{e.target_end|date:"c"}}',
                                 url: '{% url 'view_engagement' e.id %}',
-                                color: {%  if e.active %}"#"+((1<<24)*Math.random()|0).toString(16){% else %}'#b9b9b9'{% endif %}, // '#337ab7'
+                                color: {% if e.active %} randomcolor() {% else %}'#b9b9b9'{% endif %},
                                 overlap: true
                             },
                         {%  endfor %}
