@@ -364,11 +364,10 @@ def edit_finding(request, fid):
     if request.method == 'POST':
         fform = FindingForm(request.POST, instance=finding)
         cform = CVSSv3Form(request.POST, instance=finding.cvss3)
-        if cform.is_valid():
-            cform.save()
         if fform.is_valid():
             new_finding = fform.save(commit=False)
             new_finding.test = finding.test
+            new_finding.cvss3 = cform.save()
             new_finding.numerical_severity = Finding.get_numerical_severity(
                 new_finding.severity)
             if new_finding.false_p:
@@ -661,6 +660,7 @@ def promote_to_finding(request, fid):
     else:
         jform = None
         
+    cform = CVSSv3Form(instance=finding.cvss3)
     form = PromoteFindingForm(initial={'title': finding.title,
                                        'date': finding.date,
                                        'severity': finding.severity,
@@ -669,6 +669,9 @@ def promote_to_finding(request, fid):
                                        'reporter': finding.reporter})
     if request.method == 'POST':
         form = PromoteFindingForm(request.POST)
+        cform = CVSSv3Form(request.POST, instance=finding.cvss3)
+        if cform.is_valid():
+            cform.save()
         if form.is_valid():
             new_finding = form.save(commit=False)
             new_finding.test = test
@@ -712,6 +715,7 @@ def promote_to_finding(request, fid):
     add_breadcrumb(parent=test, title="Promote Finding", top_level=False, request=request)
     return render(request, 'dojo/promote_to_finding.html',
                   {'form': form,
+                   'cform': cform,
                    'test': test,
                    'stub_finding': finding,
                    'form_error': form_error,

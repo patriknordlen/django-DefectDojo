@@ -606,21 +606,24 @@ class CVSSv2(models.Model):
     
     @property
     def score(self):
-        weights = {'AV':{'N':1,'AN':0.646,'L':0.395},
-                   'AC':{'L':0.71,'M':0.61,'H':0.35},
-                   'AU':{'N':0.704,'S':0.56,'M':0.45},
-                   'C':{'C':0.66,'P':0.275,'N':0},
-                   'I':{'C':0.66,'P':0.275,'N':0},
-                   'A':{'C':0.66,'P':0.275,'N':0}}
+        if self.c:
+            weights = {'AV':{'N':1,'AN':0.646,'L':0.395},
+                    'AC':{'L':0.71,'M':0.61,'H':0.35},
+                    'AU':{'N':0.704,'S':0.56,'M':0.45},
+                    'C':{'C':0.66,'P':0.275,'N':0},
+                    'I':{'C':0.66,'P':0.275,'N':0},
+                    'A':{'C':0.66,'P':0.275,'N':0}}
 
-        impact_score = 10.41 * (1 - (1-weights['C'][self.c])*(1-weights['I'][self.i])*(1-weights['A'][self.a]))
+            impact_score = 10.41 * (1 - (1-weights['C'][self.c])*(1-weights['I'][self.i])*(1-weights['A'][self.a]))
 
-        if impact_score == 0:
-            return 0
+            if impact_score == 0:
+                return 0
 
-        exploitability_score = 20 * weights['AV'][self.av] * weights['AC'][self.ac] * weights['AU'][self.au]
+            exploitability_score = 20 * weights['AV'][self.av] * weights['AC'][self.ac] * weights['AU'][self.au]
 
-        score = ceil(1.176 * (0.6 * impact_score + 0.4 * exploitability_score - 1.5) * 10.0) / 10.0
+            score = ceil(1.176 * (0.6 * impact_score + 0.4 * exploitability_score - 1.5) * 10.0) / 10.0
+        else:
+            score = 0
 
         return score
 
@@ -662,32 +665,36 @@ class CVSSv3(models.Model):
     
     @property
     def score(self):
-        weights = {'AV':{'N':0.85,'AN':0.62,'L':0.55,'P':0.2},
-                   'AC':{'L':0.77,'H':0.44},
-                   'PR':{'N':0.85,'L':0.62,'H':0.27}, # TODO - these change if scope is changed
-                   'UI':{'N':0.85,'R':0.62},
-                   'C':{'H':0.56,'L':0.22,'N':0},
-                   'I':{'H':0.56,'L':0.22,'N':0},
-                   'A':{'H':0.56,'L':0.22,'N':0}}
+        if self.c:
+            weights = {'AV':{'N':0.85,'AN':0.62,'L':0.55,'P':0.2},
+                    'AC':{'L':0.77,'H':0.44},
+                    'PR':{'N':0.85,'L':0.62,'H':0.27}, # TODO - these change if scope is changed
+                    'UI':{'N':0.85,'R':0.62},
+                    'C':{'H':0.56,'L':0.22,'N':0},
+                    'I':{'H':0.56,'L':0.22,'N':0},
+                    'A':{'H':0.56,'L':0.22,'N':0}}
 
-        isc_base = 1 - ((1-weights['C'][self.c])*(1-weights['I'][self.i])*(1-weights['A'][self.a]))
+            isc_base = 1 - ((1-weights['C'][self.c])*(1-weights['I'][self.i])*(1-weights['A'][self.a]))
 
-        if self.s == 'U':
-            impact_score = 6.42 * isc_base
+            if self.s == 'U':
+                impact_score = 6.42 * isc_base
+            else:
+                impact_score = 7.52 * (isc_base - 0.029) - 3.25 * pow(isc_base - 0.02, 15)
+
+            if impact_score < 0:
+                return 0
+
+            exploitability_score = 8.22 * weights['AV'][self.av] * weights['AC'][self.ac] * weights['PR'][self.pr] * weights['UI'][self.ui]
+
+            if self.s == 'U':
+                score = ceil(min([(impact_score + exploitability_score),10])*10.0) / 10.0
+            else:
+                score = ceil(min([1.08 * (impact_score + exploitability_score),10])*10.0) / 10.0
         else:
-            impact_score = 7.52 * (isc_base - 0.029) - 3.25 * pow(isc_base - 0.02, 15)
-
-        if impact_score < 0:
-            return 0
-
-        exploitability_score = 8.22 * weights['AV'][self.av] * weights['AC'][self.ac] * weights['PR'][self.pr] * weights['UI'][self.ui]
-
-        if self.s == 'U':
-            score = ceil(min([(impact_score + exploitability_score),10])*10.0) / 10.0
-        else:
-            score = ceil(min([1.08 * (impact_score + exploitability_score),10])*10.0) / 10.0
+            score = 0
 
         return score
+
 
 class Finding(models.Model):
     title = models.TextField(max_length=1000)
@@ -759,8 +766,10 @@ class Finding(models.Model):
             return self.cvss3.score
         elif self.cvss2 is not None:
             return self.cvss2.score
-        else:
+        elif self.severity not in [None, '']:
             return self.sev_cvss_mapping[self.severity]
+        else:
+            return 0
 
     @property
     def new_sev_level(self):
@@ -902,6 +911,8 @@ class Stub_Finding(models.Model):
     description = models.TextField(blank=True, null=True)
     test = models.ForeignKey(Test, editable=False)
     reporter = models.ForeignKey(User, editable=False)
+    cvss3 = models.ForeignKey(CVSSv3, null=True)
+
 
     class Meta:
         ordering = ('-date', 'title')

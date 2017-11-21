@@ -659,28 +659,19 @@ class AdHocFindingForm(forms.ModelForm):
 
 class PromoteFindingForm(forms.ModelForm):
     title = forms.CharField(max_length=1000)
-    date = forms.DateField(required=True,
-                           widget=forms.TextInput(attrs={'class':
-                                                             'datepicker'}))
-    cwe = forms.IntegerField(required=False)
     severity_options = (('Low', 'Low'), ('Medium', 'Medium'),
                         ('High', 'High'), ('Critical', 'Critical'))
-    description = forms.CharField(widget=forms.Textarea)
-    severity = forms.ChoiceField(
-        choices=severity_options,
-        error_messages={
-            'required': 'Select valid choice: In Progress, On Hold, Completed',
-            'invalid_choice': 'Select valid choice: Critical,High,Medium,Low'})
-    mitigation = forms.CharField(widget=forms.Textarea)
-    impact = forms.CharField(widget=forms.Textarea)
+    description = forms.CharField(widget=forms.Textarea, required=False)
+    mitigation = forms.CharField(widget=forms.Textarea, required=False)
+    impact = forms.CharField(widget=forms.Textarea, required=False)
     endpoints = forms.ModelMultipleChoiceField(Endpoint.objects, required=False, label='Systems / Endpoints',
                                                widget=MultipleSelectWithPopPlusMinus(attrs={'size': '11'}))
     references = forms.CharField(widget=forms.Textarea, required=False)
 
     class Meta:
         model = Finding
-        order = ('title', 'severity', 'endpoints', 'description', 'impact')
-        exclude = ('reporter', 'url', 'numerical_severity', 'endpoint', 'active', 'false_p', 'verified', 'is_template',
+        order = ('title', 'endpoints', 'description', 'impact')
+        exclude = ('reporter', 'severity', 'cvss2', 'cvss3', 'cwe', 'date', 'url', 'numerical_severity', 'endpoint', 'active', 'false_p', 'verified', 'is_template',
                    'duplicate', 'out_of_scope', 'images', 'under_review', 'reviewers', 'review_requested_by')
 
 
@@ -732,7 +723,7 @@ class StubFindingForm(forms.ModelForm):
         model = Stub_Finding
         order = ('title',)
         exclude = (
-            'date', 'description', 'severity', 'reporter', 'test')
+            'cvss3', 'date', 'description', 'severity', 'reporter', 'test')
 
     def clean(self):
         cleaned_data = super(StubFindingForm, self).clean()
