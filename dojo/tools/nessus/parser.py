@@ -3,7 +3,7 @@ from defusedxml import ElementTree
 import os
 import csv
 import re
-from dojo.models import Endpoint, Finding
+from dojo.models import Endpoint, Finding, CVSSv2
 
 __author__ = 'jay7958'
 
@@ -144,6 +144,7 @@ class NessusXMLParser(object):
                     #     continue
 
                     port = None
+                    cvss = None
                     if float(item.attrib["port"]) > 0:
                         port = item.attrib["port"]
                     description = ""
@@ -161,6 +162,9 @@ class NessusXMLParser(object):
 
                     impact = item.find("description").text + "\n\n"
                     if item.find("cvss_vector") is not None:
+                        cvss = CVSSv2()
+                        cvss.fromvector(item.find("cvss_vector").text)
+                        cvss.save()
                         impact += "CVSS Vector: " + item.find("cvss_vector").text + "\n"
                     if item.find("cvss_base_score") is not None:
                         impact += "CVSS Base Score: " + item.find("cvss_base_score").text + "\n"
@@ -195,6 +199,7 @@ class NessusXMLParser(object):
                                        test=test,
                                        verified=False,
                                        description=description,
+                                       cvss2=cvss,
                                        severity=severity,
                                        numerical_severity=Finding.get_numerical_severity(severity),
                                        mitigation=mitigation,
