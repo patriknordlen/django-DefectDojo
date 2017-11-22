@@ -289,7 +289,12 @@
                             <ul class="dropdown-menu dropdown-menu-right" role="menu" aria-labelledby="dropdownMenu1">
                                 <li role="presentation">
                                     <a class="" href="{% url 'add_tests' eng.id %}">
-                                        <i class="fa fa-plus"></i> Add Manual Findings
+                                        <i class="fa fa-plus"></i> Add Manual Finding
+                                    </a>
+                                </li>
+                                <li role="presentation">
+                                    <a class="" href="{% url 'add_template_tests' eng.id %}">
+                                        <i class="fa fa-plus"></i> Add Finding From Template
                                     </a>
                                 </li>
                                 <li role="presentation">
