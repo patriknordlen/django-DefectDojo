@@ -18,6 +18,8 @@ urlpatterns = [
         name='delete_engagement'),
     url(r'^engagement/(?P<eid>\d+)/add_tests$', views.add_tests,
         name='add_tests'),
+    url(r'^engagement/(?P<eid>\d+)/add_template_tests$', views.add_template_tests,
+        name='add_template_tests'),
     url(r'^engagement/(?P<eid>\d+)/import_scan_results$',
         views.import_scan_results, name='import_scan_results'),
     url(r'^engagement/(?P<eid>\d+)/close$', views.close_eng,

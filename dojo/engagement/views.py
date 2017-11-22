@@ -298,6 +298,16 @@ def add_tests(request, eid):
 
     return HttpResponseRedirect(reverse('add_findings', args=(manual_test.id,)))
 
+@user_passes_test(lambda u: u.is_staff)
+def add_template_tests(request, eid):
+    eng = Engagement.objects.get(id=eid)
+
+    try:
+        manual_test = Test.objects.get(engagement=eng, test_type__name='Manual findings')
+    except:
+        manual_test = Test.objects.create(engagement=eng, test_type=Test_Type.objects.get(name='Manual findings'))
+
+    return HttpResponseRedirect(reverse('search', args=(manual_test.id,)))
 
 @user_passes_test(lambda u: u.is_staff)
 def import_scan_results(request, eid):
