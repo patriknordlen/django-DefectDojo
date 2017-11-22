@@ -72,7 +72,7 @@ def metrics(request, mtype):
                        'DATEDIFF(dojo_finding.mitigated, dojo_finding.date))'
         },
     )
-    active_findings = Finding.objects.filter(verified=True, active=True,
+    active_findings = Finding.objects.filter(verified=True, 
                                       severity__in=('Critical', 'High', 'Medium', 'Low', 'Info')).prefetch_related(
         'test__engagement__product',
         'test__engagement__product__customer',
