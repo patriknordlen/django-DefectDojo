@@ -165,11 +165,6 @@ class NessusXMLParser(object):
                         cvss = CVSSv2()
                         cvss.fromvector(item.find("cvss_vector").text)
                         cvss.save()
-                        impact += "CVSS Vector: " + item.find("cvss_vector").text + "\n"
-                    if item.find("cvss_base_score") is not None:
-                        impact += "CVSS Base Score: " + item.find("cvss_base_score").text + "\n"
-                    if item.find("cvss_temporal_score") is not None:
-                        impact += "CVSS Temporal Score: " + item.find("cvss_temporal_score").text + "\n"
 
                     mitigation = item.find("solution").text if item.find("solution") is not None else "N/A"
                     references = ""
