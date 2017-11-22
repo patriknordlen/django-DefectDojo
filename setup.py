@@ -43,7 +43,8 @@ setup(
         'django-multiselectfield',
         'django-tinymce',
         'python-docx',
-        'docxtpl'],
+        'docxtpl',
+        'django-markdownx'],
     dependency_links=[
         "https://github.com/grendel513/python-pdfkit/tarball/master#egg=pdfkit-0.5.0",
     ],
