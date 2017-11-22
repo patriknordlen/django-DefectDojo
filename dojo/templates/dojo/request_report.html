@@ -83,7 +83,7 @@
                                 <td class="nowrap">{{ finding.date }}</td>
                                 <td class="">{{ finding.status }}</td>
                                 <td class="">{{ finding.mitigated }}</td>
-                                <td><span class="label severity severity-{{ finding.severity }}">{{ finding.severity_display }}</span></td>
+                                <td><span class="label severity severity-{{ finding.new_sev_level }}">{{ finding.new_sev }}</span></td>
                                 <td>{{ finding.test.engagement.product }}</td>
                             </tr>
                         {% endfor %}
