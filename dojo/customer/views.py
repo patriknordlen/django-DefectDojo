@@ -56,9 +56,9 @@ def customers_json(request):
 
 def customer_json(request, cid):
     if request.user.is_superuser:
-        products = Product.objects.filter(id=cid)
+        products = Product.objects.filter(customer__id=cid)
     else:
-        products = Product.objects.filter(id=cid,customer__authorized_users__in=[request.user])
+        products = Product.objects.filter(customer__id=cid,customer__authorized_users__in=[request.user])
 
     return HttpResponse(serializers.serialize('json', products), content_type='application/json')
 
