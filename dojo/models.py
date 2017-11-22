@@ -732,13 +732,13 @@ class Finding(models.Model):
 
     thread_id = models.IntegerField(default=0, editable=False)
     mitigated = models.DateTimeField(editable=False, null=True, blank=True)
-    mitigated_by = models.ForeignKey(User, null=True, editable=False, related_name="mitigated_by")
-    reporter = models.ForeignKey(User, editable=False, related_name='reporter')
+    mitigated_by = models.ForeignKey(Dojo_User, null=True, editable=False, related_name="mitigated_by")
+    reporter = models.ForeignKey(Dojo_User, editable=False, related_name='reporter')
     notes = models.ManyToManyField(Notes, blank=True,
                                    editable=False)
     numerical_severity = models.CharField(max_length=4)
     last_reviewed = models.DateTimeField(null=True, editable=False)
-    last_reviewed_by = models.ForeignKey(User, null=True, editable=False, related_name='last_reviewed_by')
+    last_reviewed_by = models.ForeignKey(Dojo_User, null=True, editable=False, related_name='last_reviewed_by')
     images = models.ManyToManyField('FindingImage', blank=True)
 
     SEVERITIES = {'Info': 4, 'Low': 3, 'Medium': 2,
