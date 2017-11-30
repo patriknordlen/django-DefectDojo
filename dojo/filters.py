@@ -11,7 +11,8 @@ from django.contrib.auth.models import User
 from django.utils import six
 from django.utils.translation import ugettext_lazy as _
 from django_filters import FilterSet, CharFilter, OrderingFilter, ModelMultipleChoiceFilter, ModelChoiceFilter, \
-    MultipleChoiceFilter
+    MultipleChoiceFilter, RangeFilter, NumberFilter, NumericRangeFilter
+from django_filters.widgets import RangeWidget
 from django_filters.filters import ChoiceFilter, _truncate, DateTimeFilter
 from pytz import timezone
 from dojo.utils import get_system_setting
@@ -725,14 +726,13 @@ class EndpointReportFilter(DojoFilter):
 
 class ReportFindingFilter(DojoFilter):
     title = CharFilter(lookup_expr='icontains', label='Name')
-    severity = MultipleChoiceFilter(choices=SEVERITY_CHOICES)
+    score =  RangeFilter(label='CVSS Score', widget=RangeWidget(attrs={'size':4}))
     verified = ReportBooleanFilter()
     false_p = ReportBooleanFilter(label="False Positive")
 
     class Meta:
         model = Finding
-        fields = ['title','severity','false_p','verified']
-
+        fields = ['title','score','false_p','verified']
 
 class ReportAuthedFindingFilter(DojoFilter):
     title = CharFilter(lookup_expr='icontains', label='Name')
