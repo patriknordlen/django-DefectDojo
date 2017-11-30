@@ -280,10 +280,10 @@
                 {% for finding in stub_findings %}
                     <tr>
                         <td><a href="{% url 'promote_to_finding' finding.id %}">{{ finding.title }}</a></td>
-                        <td>{% if finding.severity == "Critical" or finding.severity == "High" %}
-                            <span class="text-error">
-                        {% else %}<span>{% endif %}{{ finding.cvss_score }}</span></td>
-                        <td>{{ finding.reporter.username }}</td>
+                        <td><span class="label severity severity-{{ finding.new_sev_level }}">
+                            {{ finding.score }}
+                        </span></td>
+                        <td>{{ finding.reporter }}</td>
                         <td>{{ finding.date }}</td>
                         <td>
                             <div class="btn-group">

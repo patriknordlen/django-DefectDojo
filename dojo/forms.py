@@ -23,6 +23,7 @@ from dojo.models import Finding, Customer, Product, ScanSettings, VA, \
     Cred_User, Cred_Mapping, System_Settings, Notifications, CVSSv2, CVSSv3
 from dojo.utils import get_system_setting
 from tinymce.widgets import TinyMCE
+from markdownx.fields import MarkdownxFormField
 
 RE_DATE = re.compile(r'(\d{4})-(\d\d?)-(\d\d?)$')
 
@@ -671,7 +672,7 @@ class PromoteFindingForm(forms.ModelForm):
     class Meta:
         model = Finding
         order = ('title', 'endpoints', 'description', 'impact')
-        exclude = ('reporter', 'severity', 'cvss2', 'cvss3', 'cwe', 'date', 'url', 'numerical_severity', 'endpoint', 'active', 'false_p', 'verified', 'is_template',
+        exclude = ('reporter', 'severity', 'cvss2', 'cvss3', 'cwe', 'score', 'date', 'url', 'numerical_severity', 'endpoint', 'active', 'false_p', 'verified', 'is_template',
                    'duplicate', 'out_of_scope', 'images', 'under_review', 'reviewers', 'review_requested_by')
 
 
@@ -680,9 +681,6 @@ class FindingForm(forms.ModelForm):
     date = forms.DateField(required=True,
                            widget=forms.TextInput(attrs={'class':
                                                              'datepicker'}))
-    description = forms.CharField(widget=forms.Textarea)
-    mitigation = forms.CharField(widget=forms.Textarea)
-    impact = forms.CharField(widget=forms.Textarea)
     endpoints = forms.ModelMultipleChoiceField(Endpoint.objects, required=False, label='Systems / Endpoints',
                                                widget=MultipleSelectWithPopPlusMinus(attrs={'size': '11'}))
     references = forms.CharField(widget=forms.Textarea, required=False)
@@ -712,7 +710,7 @@ class FindingForm(forms.ModelForm):
     class Meta:
         model = Finding
         order = ('title', 'severity', 'endpoints', 'description', 'impact')
-        exclude = ('reporter', 'cvss2', 'cvss3', 'severity', 'cwe', 'url', 'numerical_severity', 'endpoint', 'images', 'under_review', 'reviewers',
+        exclude = ('reporter', 'cvss2', 'cvss3', 'score', 'severity', 'cwe', 'url', 'numerical_severity', 'endpoint', 'images', 'under_review', 'reviewers',
                    'review_requested_by')
 
 
@@ -723,7 +721,7 @@ class StubFindingForm(forms.ModelForm):
         model = Stub_Finding
         order = ('title',)
         exclude = (
-            'cvss3', 'date', 'description', 'severity', 'reporter', 'test')
+            'cvss3', 'date', 'description', 'score', 'severity', 'reporter', 'test')
 
     def clean(self):
         cleaned_data = super(StubFindingForm, self).clean()
@@ -742,15 +740,6 @@ class FindingTemplateForm(forms.ModelForm):
                            required=False,
                            help_text="Add tags that help describe this finding template.  "
                                      "Choose from the list or add new tags.  Press TAB key to add.")
-    cwe = forms.IntegerField(label="CWE", required=False)
-    severity_options = (('Low', 'Low'), ('Medium', 'Medium'),
-                        ('High', 'High'), ('Critical', 'Critical'))
-    severity = forms.ChoiceField(
-        required=False,
-        choices=severity_options,
-        error_messages={
-            'required': 'Select valid choice: In Progress, On Hold, Completed',
-            'invalid_choice': 'Select valid choice: Critical,High,Medium,Low'})
 
     def __init__(self, *args, **kwargs):
         tags = Tag.objects.usage_for_model(Finding)
@@ -761,7 +750,7 @@ class FindingTemplateForm(forms.ModelForm):
     class Meta:
         model = Finding_Template
         order = ('title', 'cwe', 'severity', 'description', 'impact')
-        exclude = ('numerical_severity',)
+        exclude = ['cvss3','cwe','severity']
 
 
 class DeleteFindingTemplateForm(forms.ModelForm):

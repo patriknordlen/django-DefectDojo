@@ -389,8 +389,8 @@ class Engagement(models.Model):
     target_start = models.DateField(null=False, blank=False)
     target_end = models.DateField(null=False, blank=False)
     targets = models.TextField(null=True)
-    executive_summary = MarkdownxField(null=True)
-    technical_summary = MarkdownxField(null=True)
+    executive_summary = MarkdownxField(null=True, blank=True)
+    technical_summary = MarkdownxField(null=True, blank=True)
     analysts = models.ManyToManyField(Dojo_User, editable=True)
     hours = models.IntegerField(null=False)
     environment = models.ForeignKey(Development_Environment, null=True)
@@ -625,7 +625,7 @@ class CVSSv2(models.Model):
         else:
             score = 0
 
-        return score
+        return round(score, 1)
 
 class CVSSv3(models.Model):
     AV_CHOICES = (('N','Network'),('AN','Adjacent Network'),('L','Local'),('P','Physical'))
@@ -693,7 +693,7 @@ class CVSSv3(models.Model):
         else:
             score = 0
 
-        return score
+        return round(score, 1)
 
 
 class Finding(models.Model):
@@ -701,16 +701,18 @@ class Finding(models.Model):
     date = models.DateField(default=get_current_date)
     cwe = models.IntegerField(default=0, null=True, blank=True)
     url = models.TextField(null=True, blank=True, editable=False)
+    score = models.DecimalField(max_digits=3, decimal_places=1, null=True)
     severity = models.CharField(max_length=200)
-    description = models.TextField()
-    mitigation = models.TextField()
-    impact = models.TextField()
-    endpoints = models.ManyToManyField(Endpoint, blank=True, )
+    description = MarkdownxField(null=True, blank=True)
+    mitigation = MarkdownxField(null=True, blank=True)
+    impact = MarkdownxField(null=True, blank=True)
+    formatting = models.CharField(choices=(('Markdown','Markdown'),('Raw','Raw')), default='Raw', max_length=20)
+    endpoints = models.ManyToManyField(Endpoint, blank=True)
     unsaved_endpoints = []
     unsaved_request = None
     unsaved_response = None
     unsaved_tags = None
-    references = models.TextField(null=True, blank=True, db_column="refs")
+    references = MarkdownxField(null=True, blank=True, db_column="refs")
     test = models.ForeignKey(Test, editable=False)
 
     cvss2 = models.ForeignKey(CVSSv2, null=True)
@@ -744,8 +746,8 @@ class Finding(models.Model):
     SEVERITIES = {'Info': 4, 'Low': 3, 'Medium': 2,
                   'High': 1, 'Critical': 0}
 
-    sev_cvss_mapping = {'Info': 0, 'Low': 3, 'Medium': 6,
-                        'High': 9, 'Critical': 10}
+    sev_cvss_mapping = {'Info': 0, 'Low': 0.1, 'Medium': 4,
+                        'High': 7, 'Critical': 9}
 
     class Meta:
         ordering = ('numerical_severity', '-date', 'title')
@@ -910,7 +912,7 @@ class Stub_Finding(models.Model):
     severity = models.CharField(max_length=200, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     test = models.ForeignKey(Test, editable=False)
-    reporter = models.ForeignKey(User, editable=False)
+    reporter = models.ForeignKey(Dojo_User, editable=False)
     cvss3 = models.ForeignKey(CVSSv3, null=True)
 
 
@@ -930,6 +932,7 @@ class Stub_Finding(models.Model):
 class Finding_Template(models.Model):
     title = models.TextField(max_length=1000)
     cwe = models.IntegerField(default=None, null=True, blank=True)
+    cvss3 = models.ForeignKey(CVSSv3, null=True)
     severity = models.CharField(max_length=200, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     mitigation = models.TextField(null=True, blank=True)
@@ -940,8 +943,24 @@ class Finding_Template(models.Model):
     SEVERITIES = {'Info': 4, 'Low': 3, 'Medium': 2,
                   'High': 1, 'Critical': 0}
 
+    sev_cvss_mapping = {'Info': 0, 'Low': 3, 'Medium': 6,
+                        'High': 9, 'Critical': 10}
+
     class Meta:
         ordering = ['-cwe']
+
+    @property
+    def new_sev(self):
+        if self.cvss3 is not None:
+            return self.cvss3.score
+        else:
+            return 0
+
+    @property
+    def new_sev_level(self):
+        for level,score in sorted(self.sev_cvss_mapping.items(), key=operator.itemgetter(1), reverse=True):
+            if self.new_sev >= score:
+                return level
 
     def __unicode__(self):
         return self.title

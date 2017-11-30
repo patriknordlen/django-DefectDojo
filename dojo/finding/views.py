@@ -346,9 +346,9 @@ def delete_finding(request, fid):
 def edit_finding(request, fid):
     finding = get_object_or_404(Finding, id=fid)
     old_status = finding.status()
-    fform = FindingForm(instance=finding)
+    form = FindingForm(instance=finding)
     cform = CVSSv3Form(instance=finding.cvss3)
-    fform.initial['tags'] = [tag.name for tag in finding.tags]
+    form.initial['tags'] = [tag.name for tag in finding.tags]
     form_error = False
     jform = None
     try:
@@ -362,10 +362,10 @@ def edit_finding(request, fid):
         jform = JIRAFindingForm(enabled=enabled, prefix='jiraform')
 
     if request.method == 'POST':
-        fform = FindingForm(request.POST, instance=finding)
+        form = FindingForm(request.POST, instance=finding)
         cform = CVSSv3Form(request.POST, instance=finding.cvss3)
-        if fform.is_valid():
-            new_finding = fform.save(commit=False)
+        if form.is_valid():
+            new_finding = form.save(commit=False)
             new_finding.test = finding.test
             new_finding.cvss3 = cform.save()
             new_finding.numerical_severity = Finding.get_numerical_severity(
@@ -377,7 +377,7 @@ def edit_finding(request, fid):
             create_template = new_finding.is_template
             # always false now since this will be deprecated soon in favor of new Finding_Template model
             new_finding.is_template = False
-            new_finding.endpoints = fform.cleaned_data['endpoints']
+            new_finding.endpoints = form.cleaned_data['endpoints']
             new_finding.last_reviewed = timezone.now()
             new_finding.last_reviewed_by = request.user
             tags = request.POST.getlist('tags')
@@ -432,13 +432,13 @@ def edit_finding(request, fid):
             form_error = True
 
     if form_error and 'endpoints' in form.cleaned_data:
-        fform.fields['endpoints'].queryset = fform.cleaned_data['endpoints']
+        form.fields['endpoints'].queryset = form.cleaned_data['endpoints']
     else:
-        fform.fields['endpoints'].queryset = finding.endpoints.all()
-    fform.initial['tags'] = [tag.name for tag in finding.tags]
+        form.fields['endpoints'].queryset = finding.endpoints.all()
+    form.initial['tags'] = [tag.name for tag in finding.tags]
     add_breadcrumb(parent=finding, title="Edit", top_level=False, request=request)
     return render(request, 'dojo/edit_findings.html',
-                  {'fform': fform,
+                  {'form': form,
                    'cform': cform,
                    'finding': finding,
                    'jform' : jform
@@ -745,9 +745,10 @@ def add_template(request):
     form = FindingTemplateForm()
     if request.method == 'POST':
         form = FindingTemplateForm(request.POST)
+        cform = CVSSv3Form(request.POST)
         if form.is_valid():
             template = form.save(commit=False)
-            template.numerical_severity = Finding.get_numerical_severity(template.severity)
+            template.cvss3 = cform.save()
             template.save()
             tags = request.POST.getlist('tags')
             t = ", ".join(tags)
@@ -765,6 +766,7 @@ def add_template(request):
     add_breadcrumb(title="Add Template", top_level=False, request=request)
     return render(request, 'dojo/add_template.html',
                   {'form': form,
+                   'cform': cform,
                    'name': 'Add Template'
                    })
 
@@ -773,11 +775,13 @@ def add_template(request):
 def edit_template(request, tid):
     template = get_object_or_404(Finding_Template, id=tid)
     form = FindingTemplateForm(instance=template)
+    cform = CVSSv3Form(instance=template.cvss3)
     if request.method == 'POST':
         form = FindingTemplateForm(request.POST, instance=template)
+        cform = CVSSv3Form(request.POST, instance=template.cvss3)
         if form.is_valid():
             template = form.save(commit=False)
-            template.numerical_severity = Finding.get_numerical_severity(template.severity)
+            template.cvss3 = cform.save()
             template.save()
             tags = request.POST.getlist('tags')
             t = ", ".join(tags)
@@ -796,6 +800,7 @@ def edit_template(request, tid):
     add_breadcrumb(title="Edit Template", top_level=False, request=request)
     return render(request, 'dojo/add_template.html',
                   {'form': form,
+                   'cform': cform,
                    'name': 'Edit Template',
                    'template': template,
                    })

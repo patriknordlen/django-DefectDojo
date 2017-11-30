@@ -61,14 +61,21 @@ def async_docx_report(self,
                      context={},
                      uri=None):
 
-    def add_rt_fields(findings):
-        for finding in findings:
-            finding.description_rt = Markdown(finding.description)
-            finding.impact_rt = Markdown(finding.impact)
-            finding.mitigation_rt = Markdown(finding.mitigation)
-            finding.references_rt = Markdown(finding.references)
-            finding.title_rt = Markdown(finding.title)
-        return findings
+    def format_fields():
+
+        context['engagement'].executive_summary = Markdown(context['engagement'].executive_summary)
+        context['engagement'].technical_summary = Markdown(context['engagement'].technical_summary)
+
+        for finding in context['findings']:
+            if finding.formatting == 'Markdown':
+                format_func = Markdown
+            else:
+                format_func = RichText
+            
+            finding.description = format_func(finding.description)
+            finding.impact = format_func(finding.impact)
+            finding.mitigation = format_func(finding.mitigation)
+            finding.references = format_func(finding.references)
 
     try:
         report.task_id = async_docx_report.request.id
@@ -76,7 +83,7 @@ def async_docx_report(self,
         report.save()
 
         d = DocxTemplate(settings.DOJO_ROOT + '/templates/dojo/engagement_report.docx')
-        context['findings'] = add_rt_fields(context['findings'])
+        format_fields()
         d.render(context)
 
         if report.file.name:
@@ -97,9 +104,15 @@ def async_docx_report(self,
                             icon='file-text',
                             url=uri, report=report, objowner=report.requester)
     except Exception as e:
+        import traceback
         report.status = 'error'
         report.save()
-        # email_requester(report, uri, error=e)
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        traceback.print_tb(exc_tb)
+        # print(exc_type, exc_tb.tb_lineno)
+        raise e
+    return True
+
         exc_type, exc_obj, exc_tb = sys.exc_info()
         print(exc_type, exc_tb.tb_lineno)
         raise e
