@@ -652,7 +652,7 @@ def generate_report(request, obj):
         engagement = obj
         findings = ReportFindingFilter(request.GET,
                                        queryset=Finding.objects.filter(test__engagement=engagement,
-                                                                       ).prefetch_related('test',
+                                                                       ).order_by('-score').prefetch_related('test',
                                                                                           'test__engagement__product',
                                                                                           'test__engagement__product__customer').distinct())
         report_name = '%s - %s - %s' % (engagement.product.customer, engagement.product, engagement)

@@ -40,7 +40,7 @@ def view_test(request, tid):
     test = Test.objects.get(id=tid)
     notes = test.notes.all()
     person = request.user.username
-    findings = Finding.objects.filter(test=test)
+    findings = Finding.objects.filter(test=test).order_by('-score')
     stub_findings = Stub_Finding.objects.filter(test=test)
 
     if request.method == 'POST':
@@ -217,6 +217,7 @@ def add_findings(request, tid):
             new_finding = fform.save(commit=False)
             new_finding.test = test
             new_finding.cvss3 = cvss3
+            new_finding.score = cvss3.score
             new_finding.reporter = request.user
             new_finding.numerical_severity = Finding.get_numerical_severity(
                 new_finding.severity)
