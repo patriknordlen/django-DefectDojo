@@ -191,7 +191,7 @@ class Test_Type(models.Model):
 
 class Product(models.Model):
     name = models.CharField(max_length=300)
-    description = models.CharField(max_length=4000)
+    description = models.CharField(max_length=4000, blank=True, null=True)
     '''
         The following three fields are deprecated and no longer in use.
         They remain in model for backwards compatibility and will be removed
@@ -388,12 +388,12 @@ class Engagement(models.Model):
     first_contacted = models.DateField(null=True, blank=True)
     target_start = models.DateField(null=False, blank=False)
     target_end = models.DateField(null=False, blank=False)
-    targets = models.TextField(null=True)
+    targets = models.TextField(null=True, blank=True)
     executive_summary = MarkdownxField(null=True, blank=True)
     technical_summary = MarkdownxField(null=True, blank=True)
     analysts = models.ManyToManyField(Dojo_User, editable=True)
     hours = models.IntegerField(null=False)
-    environment = models.ForeignKey(Development_Environment, null=True)
+    environment = models.ForeignKey(Development_Environment, null=True, blank=True)
     # report_type = models.ForeignKey(Report_Type, null=True, blank=True)
     product = models.ForeignKey(Product)
     updated = models.DateTimeField(editable=False, null=True, blank=True)

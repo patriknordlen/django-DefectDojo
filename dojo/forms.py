@@ -168,7 +168,7 @@ class Development_EnvironmentForm(forms.ModelForm):
 class ProductForm(forms.ModelForm):
     name = forms.CharField(max_length=50, required=True)
     description = forms.CharField(widget=forms.Textarea(attrs={}),
-                                  required=True)
+                                  required=False)
     tags = forms.CharField(widget=forms.SelectMultiple(choices=[]),
                            required=False,
                            help_text="Add tags that help describe this product.  "
