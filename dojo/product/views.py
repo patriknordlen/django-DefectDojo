@@ -345,7 +345,7 @@ def edit_product(request, pid):
             return HttpResponseRedirect(reverse('view_product', args=(pid,)))
     else:
         form = ProductForm(instance=prod,
-                           initial={'auth_users': prod.authorized_users.all(),
+                           initial={'authorized_users': prod.authorized_users.all(),
                                     'tags': get_tag_list(Tag.objects.get_for_object(prod))})
 
         if get_system_setting('enable_jira') and jira_enabled:
