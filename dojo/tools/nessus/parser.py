@@ -145,6 +145,7 @@ class NessusXMLParser(object):
 
                     port = None
                     cvss = None
+                    score = None
                     if float(item.attrib["port"]) > 0:
                         port = item.attrib["port"]
                     description = ""
@@ -164,6 +165,7 @@ class NessusXMLParser(object):
                     if item.find("cvss_vector") is not None:
                         cvss = CVSSv2()
                         cvss.fromvector(item.find("cvss_vector").text)
+                        score = cvss.score
                         cvss.save()
 
                     mitigation = item.find("solution").text if item.find("solution") is not None else "N/A"
@@ -195,6 +197,7 @@ class NessusXMLParser(object):
                                        verified=False,
                                        description=description,
                                        cvss2=cvss,
+                                       score=score,
                                        severity=severity,
                                        numerical_severity=Finding.get_numerical_severity(severity),
                                        mitigation=mitigation,
