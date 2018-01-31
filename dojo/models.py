@@ -681,7 +681,7 @@ class CVSSv3(models.Model):
             else:
                 impact_score = 7.52 * (isc_base - 0.029) - 3.25 * pow(isc_base - 0.02, 15)
 
-            if impact_score < 0:
+            if impact_score <= 0:
                 return 0
 
             exploitability_score = 8.22 * weights['AV'][self.av] * weights['AC'][self.ac] * weights['PR'][self.pr] * weights['UI'][self.ui]
