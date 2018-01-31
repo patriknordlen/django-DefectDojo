@@ -368,6 +368,7 @@ def edit_finding(request, fid):
             new_finding = form.save(commit=False)
             new_finding.test = finding.test
             new_finding.cvss3 = cform.save()
+            new_finding.score = new_finding.cvss3.score
             new_finding.numerical_severity = Finding.get_numerical_severity(
                 new_finding.severity)
             if new_finding.false_p:
@@ -412,6 +413,7 @@ def edit_finding(request, fid):
                 else:
                     template = Finding_Template(title=new_finding.title,
                                                 cwe=new_finding.cwe,
+                                                cvss3=new_finding.cvss3,
                                                 severity=new_finding.severity,
                                                 description=new_finding.description,
                                                 mitigation=new_finding.mitigation,
@@ -670,11 +672,11 @@ def promote_to_finding(request, fid):
     if request.method == 'POST':
         form = PromoteFindingForm(request.POST)
         cform = CVSSv3Form(request.POST, instance=finding.cvss3)
-        if cform.is_valid():
-            cform.save()
         if form.is_valid():
             new_finding = form.save(commit=False)
             new_finding.test = test
+            new_finding.cvss3 = cform.save()
+            new_finding.score = new_finding.cvss3.score
             new_finding.reporter = request.user
             new_finding.numerical_severity = Finding.get_numerical_severity(
                 new_finding.severity)
@@ -743,6 +745,7 @@ def templates(request):
 @user_passes_test(lambda u: u.is_staff)
 def add_template(request):
     form = FindingTemplateForm()
+    cform = CVSSv3Form()
     if request.method == 'POST':
         form = FindingTemplateForm(request.POST)
         cform = CVSSv3Form(request.POST)

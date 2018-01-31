@@ -141,11 +141,7 @@
                 <tr>
                     <td>
                         <span class="label severity severity-{{ finding.new_sev_level }}">
-                            {% if finding.new_sev %}
-                                {{ finding.new_sev }}
-                            {% else %}
-                                Unknown
-                            {% endif %}
+                            {{ finding.score }}
                         </span>
                     </td>
                     <td>{{ finding.cvss3.get_av_display }}</td>

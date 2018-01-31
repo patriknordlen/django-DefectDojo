@@ -294,10 +294,15 @@ def add_temp_finding(request, tid, fid):
     findings = Finding_Template.objects.all()
 
     if request.method == 'POST':
-        form = FindingForm(request.POST)
-        if form.is_valid():
-            new_finding = form.save(commit=False)
+        fform = FindingForm(request.POST)
+        cform = CVSSv3Form(request.POST)
+        if cform.is_valid():
+            cvss3 = cform.save()
+        if fform.is_valid():
+            new_finding = fform.save(commit=False)
             new_finding.test = test
+            new_finding.cvss3 = cvss3
+            new_finding.score = cvss3.score
             new_finding.reporter = request.user
             new_finding.numerical_severity = Finding.get_numerical_severity(
                 new_finding.severity)
@@ -311,7 +316,7 @@ def add_temp_finding(request, tid, fid):
             # no further action needed here since this is already adding from template.
             new_finding.is_template = False
             new_finding.save()
-            new_finding.endpoints = form.cleaned_data['endpoints']
+            new_finding.endpoints = fform.cleaned_data['endpoints']
             new_finding.save()
             if 'jiraform-push_to_jira' in request.POST:
                     jform = JIRAFindingForm(request.POST, prefix='jiraform', enabled=True)
@@ -352,8 +357,7 @@ def add_temp_finding(request, tid, fid):
                                  extra_tags='alert-danger')
 
     else:
-        form = FindingForm(initial={'active': False,
-                                    'date': timezone.now().date(),
+        fform = FindingForm(initial={'active': False,
                                     'verified': False,
                                     'false_p': False,
                                     'duplicate': False,
@@ -366,6 +370,7 @@ def add_temp_finding(request, tid, fid):
                                     'impact': finding.impact,
                                     'references': finding.references,
                                     'numerical_severity': finding.numerical_severity})
+        cform = CVSSv3Form(instance=finding.cvss3)
         if get_system_setting('enable_jira'):
             enabled = JIRA_PKey.objects.get(product=test.engagement.product).push_all_issues
             jform = JIRAFindingForm(enabled=enabled, prefix='jiraform')
@@ -374,7 +379,8 @@ def add_temp_finding(request, tid, fid):
 
     add_breadcrumb(parent=test, title="Add Finding", top_level=False, request=request)
     return render(request, 'dojo/add_findings.html',
-                  {'form': form,
+                  {'fform': fform,
+                   'cform': cform,
                    'jform': jform,
                    'findings': findings,
                    'temp': True,
