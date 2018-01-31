@@ -201,7 +201,11 @@ def delete_engagement(request, eid):
 
 @user_passes_test(lambda u: u.is_staff)
 def view_engagement(request, eid):
-    eng = Engagement.objects.get(id=eid)
+    if request.user.is_superuser:
+        eng = get_object_or_404(Engagement, id=eid)
+    else:
+        eng = get_object_or_404(Engagement, id=eid, analysts__in=[request.user])
+
     tests = Test.objects.filter(engagement=eng)
     try:
         jissue = JIRA_Issue.objects.get(engagement=eng)

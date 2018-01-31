@@ -35,7 +35,7 @@ def dashboard(request):
     now = timezone.now()
     seven_days_ago = now - timedelta(days=7)
     if request.user.is_superuser:
-        engagements = Engagement.objects.filter(active=True)
+        engagements = Engagement.objects.filter(active=True).order_by('id')
         engagement_count = Engagement.objects.filter(active=True).count()
         finding_count = Finding.objects.filter(verified=True,
                                                mitigated=None,
@@ -50,9 +50,9 @@ def dashboard(request):
         # forever counts
         findings = Finding.objects.filter(verified=True)
     else:
-        engagements = Engagement.objects.filter(lead=request.user,
-                                                     active=True)
-        engagement_count = Engagement.objects.filter(lead=request.user,
+        engagements = Engagement.objects.filter(analysts__in=[request.user],
+                                                     active=True).order_by('id')
+        engagement_count = Engagement.objects.filter(analysts__in=[request.user],
                                                      active=True).count()
         finding_count = Finding.objects.filter(reporter=request.user,
                                                verified=True,
@@ -62,9 +62,6 @@ def dashboard(request):
         mitigated_count = Finding.objects.filter(mitigated_by=request.user,
                                                  mitigated__range=[seven_days_ago,
                                                                    now]).count()
-
-        accepted_count = len([finding for ra in Risk_Acceptance.objects.filter(
-            reporter=request.user, created__range=[seven_days_ago, now]) for finding in ra.accepted_findings.all()])
 
         # forever counts
         findings = Finding.objects.filter(reporter=request.user,
