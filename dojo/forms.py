@@ -589,8 +589,6 @@ class CVSSv3Form(forms.ModelForm):
 
 class AddFindingForm(forms.ModelForm):
     title = forms.CharField(max_length=1000)
-    severity_options = (('Low', 'Low'), ('Medium', 'Medium'),
-                        ('High', 'High'), ('Critical', 'Critical'))
     description = forms.CharField(widget=forms.Textarea, required=False)
     mitigation = forms.CharField(widget=forms.Textarea, required=False)
     impact = forms.CharField(widget=forms.Textarea, required=False)
@@ -614,7 +612,7 @@ class AddFindingForm(forms.ModelForm):
     class Meta:
         model = Finding
         order = ('title', 'endpoints', 'description', 'impact')
-        exclude = ('reporter', 'cwe', 'url', 'cvss2', 'cvss3', 'severity', 'date', 'numerical_severity', 'endpoint', 'images', 'under_review', 'reviewers',
+        exclude = ('reporter', 'cwe', 'url', 'cvss2', 'cvss3', 'score', 'severity', 'date', 'numerical_severity', 'endpoint', 'images', 'under_review', 'reviewers',
                    'review_requested_by')
 
 
@@ -623,15 +621,7 @@ class AdHocFindingForm(forms.ModelForm):
     date = forms.DateField(required=True,
                            widget=forms.TextInput(attrs={'class':
                                                              'datepicker'}))
-    cwe = forms.IntegerField(required=False)
-    severity_options = (('Low', 'Low'), ('Medium', 'Medium'),
-                        ('High', 'High'), ('Critical', 'Critical'))
     description = forms.CharField(widget=forms.Textarea)
-    severity = forms.ChoiceField(
-        choices=severity_options,
-        error_messages={
-            'required': 'Select valid choice: In Progress, On Hold, Completed',
-            'invalid_choice': 'Select valid choice: Critical,High,Medium,Low'})
     mitigation = forms.CharField(widget=forms.Textarea)
     impact = forms.CharField(widget=forms.Textarea)
     endpoints = forms.ModelMultipleChoiceField(Endpoint.objects, required=False, label='Systems / Endpoints',
@@ -678,9 +668,9 @@ class PromoteFindingForm(forms.ModelForm):
 
 class FindingForm(forms.ModelForm):
     title = forms.CharField(max_length=1000)
-    date = forms.DateField(required=True,
-                           widget=forms.TextInput(attrs={'class':
-                                                             'datepicker'}))
+    # date = forms.DateField(required=True,
+    #                        widget=forms.TextInput(attrs={'class':
+    #                                                          'datepicker'}))
     endpoints = forms.ModelMultipleChoiceField(Endpoint.objects, required=False, label='Systems / Endpoints',
                                                widget=MultipleSelectWithPopPlusMinus(attrs={'size': '11'}))
     references = forms.CharField(widget=forms.Textarea, required=False)
@@ -710,7 +700,7 @@ class FindingForm(forms.ModelForm):
     class Meta:
         model = Finding
         order = ('title', 'severity', 'endpoints', 'description', 'impact')
-        exclude = ('reporter', 'cvss2', 'cvss3', 'score', 'severity', 'cwe', 'url', 'numerical_severity', 'endpoint', 'images', 'under_review', 'reviewers',
+        exclude = ('reporter', 'cvss2', 'cvss3', 'date', 'score', 'severity', 'cwe', 'url', 'numerical_severity', 'endpoint', 'images', 'under_review', 'reviewers',
                    'review_requested_by')
 
 
