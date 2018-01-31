@@ -49,7 +49,8 @@ def customers_json(request):
     if request.user.is_superuser:
         customers = Customer.objects.all().order_by('name')
     else:
-        customers = Customer.objects.filter(authorized_users__in=[request.user]).order_by('name')
+        authorized_customer_list = [c['customer'] for c in Product.objects.filter(authorized_users__in=[request.user]).values('customer')]
+        customers = Customer.objects.filter(customer__in=authorized_customer_list).order_by('name')
 
     return HttpResponse(serializers.serialize('json', customers), content_type='application/json')
 
@@ -58,7 +59,8 @@ def customer_json(request, cid):
     if request.user.is_superuser:
         products = Product.objects.filter(customer__id=cid)
     else:
-        products = Product.objects.filter(customer__id=cid,customer__authorized_users__in=[request.user])
+        authorized_customer_list = [c['customer'] for c in Product.objects.filter(authorized_users__in=[request.user]).values('customer')]
+        products = Product.objects.filter(customer__id=cid,customer__in=authorized_customer_list)
 
     return HttpResponse(serializers.serialize('json', products), content_type='application/json')
 
