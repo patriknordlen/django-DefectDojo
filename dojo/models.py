@@ -1067,6 +1067,7 @@ class Report(models.Model):
     name = models.CharField(max_length=200)
     type = models.CharField(max_length=100, default='Finding')
     format = models.CharField(max_length=15, default='AsciiDoc')
+    template = models.CharField(max_length=200, default=settings.DOJO_ROOT+'/templates/dojo/engagement_report.docx')
     requester = models.ForeignKey(User)
     task_id = models.CharField(max_length=50)
     file = models.FileField(upload_to='reports/%Y/%m/%d', verbose_name='Report File', null=True)
@@ -1080,6 +1081,9 @@ class Report(models.Model):
 
     def get_url(self):
         return reverse('download_report', args=(self.id,))
+
+    def templatefile(self):
+        return os.path.basename(self.template)
 
     class Meta:
         ordering = ['-datetime']

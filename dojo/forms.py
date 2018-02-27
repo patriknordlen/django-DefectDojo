@@ -14,6 +14,8 @@ from django.utils.safestring import mark_safe
 from django.utils import timezone
 from tagging.forms import TagField
 from tagging.models import Tag
+from glob import glob
+from os.path import basename
 
 from dojo import settings
 from dojo.models import Finding, Customer, Product, ScanSettings, VA, \

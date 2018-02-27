@@ -815,13 +815,14 @@ def generate_report(request, obj):
 
             return HttpResponseRedirect(reverse('reports'))
         elif report_format == 'docx':
+            template = glob(settings.DOJO_ROOT + '/templates/dojo/*.docx')[report_template]
             filename = "engagement_finding_report.docx"
-            template = 'dojo/engagement_report.docx'
             report_title = "Engagement Report"
             if 'regen' in request.GET:
                 # we should already have a report object, lets get and use it
                 report = get_object_or_404(Report, id=request.GET['regen'])
                 report.datetime = timezone.now()
+                report.template = template
                 report.status = 'requested'
                 if report.requester.username != request.user.username:
                     report.requester = request.user

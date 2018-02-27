@@ -29,7 +29,7 @@
                             <th>{% dojo_sort request 'Date' 'datetime' 'desc' %}</th>
                             <th>{% dojo_sort request 'Name' 'name' %}</th>
                             <th>{% dojo_sort request 'Type' 'type' %}</th>
-                            <th>{% dojo_sort request 'Format' 'format' %}</th>
+                            <th>{% dojo_sort request 'Template' 'template' %}</th>
                             <th>{% dojo_sort request 'Requester' 'requester' %}</th>
                             <th>
                                 Status/Actions
@@ -49,7 +49,7 @@
                                     {{ report.type }}
                                 </td>
                                 <td>
-                                    {{ report.format }}
+                                    {{ report.templatefile }}
                                 </td>
                                 <td>
                                     {{ report.requester }}

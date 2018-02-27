@@ -77,13 +77,17 @@ def async_docx_report(self,
             finding.mitigation = format_func(finding.mitigation)
             finding.references = format_func(finding.references)
 
+    import sys
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
+
     try:
         report.task_id = async_docx_report.request.id
         report.status = 'running'
         report.save()
 
-        d = DocxTemplate(settings.DOJO_ROOT + '/templates/dojo/engagement_report.docx')
-        format_fields()
+        d = DocxTemplate(template)
+        format_fields(d)
         d.render(context)
 
         if report.file.name:
