@@ -1190,11 +1190,12 @@ class APIKeyForm(forms.ModelForm):
 class ReportOptionsForm(forms.Form):
     yes_no = (('1', 'Yes'), ('0', 'No'))
     no_yes = (('0', 'No'), ('1', 'Yes'))
-    include_finding_notes = forms.ChoiceField(choices=no_yes, label="Finding Notes")
-    include_finding_images = forms.ChoiceField(choices=yes_no, label="Finding Images")
-    include_executive_summary = forms.ChoiceField(choices=yes_no, label="Executive Summary")
-    include_table_of_contents = forms.ChoiceField(choices=yes_no, label="Table of Contents")
-    report_type = forms.ChoiceField(choices=(('PDF', 'PDF'), ('AsciiDoc', 'AsciiDoc'),('docx','docx')))
+    # include_finding_notes = forms.ChoiceField(choices=no_yes, label="Finding Notes")
+    # include_finding_images = forms.ChoiceField(choices=yes_no, label="Finding Images")
+    # include_executive_summary = forms.ChoiceField(choices=yes_no, label="Executive Summary")
+    # include_table_of_contents = forms.ChoiceField(choices=yes_no, label="Table of Contents")
+    #report_type = forms.ChoiceField(choices=(('PDF', 'PDF'), ('AsciiDoc', 'AsciiDoc'),('docx','docx'),('XNRF','XNRF')))
+    report_template = forms.ChoiceField(choices=[(i,basename(f)) for i,f in enumerate(glob('dojo/templates/dojo/*.docx'))])
 
 
 class CustomReportOptionsForm(forms.Form):
