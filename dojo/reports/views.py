@@ -557,6 +557,7 @@ def generate_report(request, obj):
             raise PermissionDenied
 
     report_format = request.GET.get('report_type', 'AsciiDoc')
+    report_template = int(request.GET.get('report_template',0))
     include_finding_notes = int(request.GET.get('include_finding_notes', 0))
     include_finding_images = int(request.GET.get('include_finding_images', 0))
     include_executive_summary = int(request.GET.get('include_executive_summary', 0))

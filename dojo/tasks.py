@@ -61,7 +61,7 @@ def async_docx_report(self,
                      context={},
                      uri=None):
 
-    def format_fields():
+    def format_fields(tpl):
 
         context['engagement'].executive_summary = Markdown(context['engagement'].executive_summary)
         context['engagement'].technical_summary = Markdown(context['engagement'].technical_summary)
@@ -72,6 +72,8 @@ def async_docx_report(self,
             else:
                 format_func = RichText
             
+            finding.pics = [InlineImage(tpl, settings.MEDIA_ROOT+pic.image.name, width=Mm(150)) for pic in finding.images.all()]
+
             finding.description = format_func(finding.description)
             finding.impact = format_func(finding.impact)
             finding.mitigation = format_func(finding.mitigation)
