@@ -7,6 +7,7 @@ from dateutil.relativedelta import relativedelta
 from django import forms
 from django.core import validators
 from django.core.validators import RegexValidator
+from django.core.exceptions import MultipleObjectsReturned
 from django.forms import modelformset_factory
 from django.forms.widgets import Widget, Select
 from django.utils.dates import MONTHS
@@ -880,12 +881,21 @@ class AddEndpointForm(forms.Form):
     def save(self):
         processed_endpoints = []
         for e in self.endpoints_to_process:
+            try:
             endpoint, created = Endpoint.objects.get_or_create(protocol=e[0],
                                                                host=e[1],
                                                                path=e[2],
                                                                query=e[3],
                                                                fragment=e[4],
                                                                product=self.product)
+            except MultipleObjectsReturned:
+                endpoint = Endpoint.objects.filter(protocol=e[0],
+                                                   host=e[1],
+                                                   path=e[2],
+                                                   query=e[3],
+                                                   fragment=e[4],
+                                                   product=self.product).first()
+
             processed_endpoints.append(endpoint)
         return processed_endpoints
 
