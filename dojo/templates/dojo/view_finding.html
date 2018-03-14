@@ -454,7 +454,11 @@
                         class="glyphicon glyphicon-chevron-up"></i></a></span></h4>
             </div>
             <div id="vuln_impact" class="panel-body collapse in">
-                <pre>{{ finding.impact }}</pre>
+                {% if finding.formatting == 'Markdown' %}
+                    {{ finding.impact|show_markdown }}
+                {% else %}
+                    <pre>{{ finding.impact }}</pre>
+                {% endif %}
             </div>
         </div>
         <div class="panel panel-default">
