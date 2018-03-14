@@ -52,7 +52,7 @@
                                     {{ report.templatefile }}
                                 </td>
                                 <td>
-                                    {{ report.requester }}
+                                    {{ report.requester.get_full_name }}
                                 </td>
                                 <td>
                                     <span class="report_status {{ report.status }}" id="{{ report.id }}">

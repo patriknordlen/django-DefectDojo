@@ -110,7 +110,7 @@
                         {% block settings-dropdown-items %}
                             {% if request.user.is_authenticated %}
                                 <li><a href="{% url 'view_profile' %}"><i
-                                        class="fa fa-user fa-fw"></i> {{ request.user.username }}</a>
+                                        class="fa fa-user fa-fw"></i> {{ request.user.get_full_name }}</a>
                                 </li>
                                 <li><a href="{% url 'api_key' %}"><i class="fa fa-fw fa-key"></i> API Key</a></li>
                             {% endif %}
