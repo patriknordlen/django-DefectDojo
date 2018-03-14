@@ -22,7 +22,7 @@ from django.template.loader import render_to_string
 from dojo.filters import ProductFilter, ProductFindingFilter
 from dojo.forms import ProductForm, EngForm, DeleteProductForm, ProductMetaDataForm, JIRAPKeyForm, JIRAFindingForm, AdHocFindingForm
 from dojo.models import Customer, Finding, Product, Engagement, ScanSettings, Risk_Acceptance, Test, JIRA_PKey, \
-    Tool_Product_Settings, Cred_User, Cred_Mapping, Test_Type
+    Tool_Product_Settings, Cred_User, Cred_Mapping, Test_Type, Dojo_User
 from dojo.utils import get_page_items, add_breadcrumb, get_punchcard_data, get_system_setting, create_notification
 from custom_field.models import CustomFieldValue, CustomField
 from  dojo.tasks import add_epic_task
@@ -91,7 +91,10 @@ def iso_to_gregorian(iso_year, iso_week, iso_day):
 
 
 def view_product(request, pid):
-    prod = get_object_or_404(Product, id=pid)
+    if request.user.is_superuser:
+        prod = get_object_or_404(Product, id=pid)
+    else:
+        prod = get_object_or_404(Product, id=pid, authorized_users__in=[request.user])
     engs = Engagement.objects.filter(product=prod)
     i_engs = Engagement.objects.filter(product=prod, active=False)
     scan_sets = ScanSettings.objects.filter(product=prod)
@@ -461,7 +464,7 @@ def new_eng_for_app(request, pid):
             else:
                 return HttpResponseRedirect(reverse('view_engagement', args=(new_eng.id,)))
     else:
-        form = EngForm()
+        form = EngForm(auth_users = (prod.authorized_users.all() | Dojo_User.objects.filter(is_superuser=True)).distinct())
         if(get_system_setting('enable_jira')):
                 if JIRA_PKey.objects.filter(product=prod).count() != 0:
                     jform = JIRAFindingForm(prefix='jiraform', enabled=JIRA_PKey.objects.get(product=prod).push_all_issues)

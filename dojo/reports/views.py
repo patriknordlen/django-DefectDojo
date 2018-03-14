@@ -283,7 +283,7 @@ def revoke_report(request, rid):
 
 
 def reports(request):
-    if request.user.is_staff:
+    if request.user.is_superuser:
         reports = Report.objects.all()
     else:
         reports = Report.objects.filter(requester=request.user)

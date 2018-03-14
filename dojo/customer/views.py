@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import user_passes_test
 from django.core.urlresolvers import reverse
 from django.core import serializers
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import render, get_object_or_404
 from dojo.filters import ProductTypeFilter
 from dojo.forms import CustomerForm, CustomerProductForm
@@ -29,7 +29,12 @@ Customer views
 
 
 def customer(request):
-    initial_queryset = Customer.objects.all().order_by('name')
+    if request.user.is_superuser:
+        initial_queryset = Customer.objects.all().order_by('name')
+    else:
+        authorized_customer_list = [c['customer'] for c in Product.objects.filter(authorized_users__in=[request.user]).values('customer')]
+        initial_queryset = Customer.objects.filter(customer__in=authorized_customer_list)
+
     name_words = [product.name for product in
                   initial_queryset]
 
@@ -88,7 +93,14 @@ def add_customer(request):
 
 @user_passes_test(lambda u: u.is_staff)
 def edit_customer(request, cid):
-    customer = get_object_or_404(Customer, pk=cid)
+    if request.user.is_superuser:
+        customer = get_object_or_404(Customer, pk=cid)
+    else:
+        if int(cid) in [c['customer'] for c in Product.objects.filter(authorized_users__in=[request.user]).values('customer')]:
+            customer = get_object_or_404(Customer, pk=cid)
+        else:
+            raise Http404()
+
     form = CustomerForm(instance=customer)
     if request.method == 'POST':
         form = CustomerForm(request.POST, instance=customer)

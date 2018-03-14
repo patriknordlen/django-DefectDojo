@@ -190,7 +190,7 @@ class ProductForm(forms.ModelForm):
         tags = Tag.objects.usage_for_model(Product)
         t = [(tag.name, tag.name) for tag in tags]
         super(ProductForm, self).__init__(*args, **kwargs)
-        self.fields['authorized_users'].queryset = non_staff
+        self.fields['authorized_users'].queryset = Dojo_User.objects.all()
         self.fields['tags'].widget.choices = t
 
     class Meta:
@@ -221,7 +221,7 @@ class ProductMetaDataForm(forms.ModelForm):
 class CustomerProductForm(forms.ModelForm):
     name = forms.CharField(max_length=50, required=True)
     description = forms.CharField(widget=forms.Textarea(attrs={}),
-                                  required=True)
+                                  required=False)
     customer = forms.IntegerField(widget=forms.HiddenInput())
 
     authorized_users = forms.ModelMultipleChoiceField(

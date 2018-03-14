@@ -213,7 +213,7 @@ class Product(models.Model):
                                   null=True, blank=True)
     updated = models.DateTimeField(editable=False, null=True, blank=True)
     tid = models.IntegerField(default=0, editable=False)
-    authorized_users = models.ManyToManyField(User, blank=True)
+    authorized_users = models.ManyToManyField(Dojo_User, blank=True)
 
     def __unicode__(self):
         return self.name
@@ -706,7 +706,7 @@ class Finding(models.Model):
     description = MarkdownxField(null=True, blank=True)
     mitigation = MarkdownxField(null=True, blank=True)
     impact = MarkdownxField(null=True, blank=True)
-    formatting = models.CharField(choices=(('Markdown','Markdown'),('Raw','Raw')), default='Raw', max_length=20)
+    formatting = models.CharField(choices=(('Markdown','Markdown'),('Raw','Raw')), default='Markdown', max_length=20)
     endpoints = models.ManyToManyField(Endpoint, blank=True)
     unsaved_endpoints = []
     unsaved_request = None
@@ -862,7 +862,7 @@ class Finding(models.Model):
 
     def clean(self):
         no_check = ["test", "reporter"]
-        bigfields = ["description", "mitigation", "references", "impact", "url"]
+        bigfields = ["description", "mitigation", "impact", "url"]
         for field_obj in self._meta.fields:
             field = field_obj.name
             if field not in no_check:

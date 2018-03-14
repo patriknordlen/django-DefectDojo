@@ -49,7 +49,7 @@ def simple_search(request):
             clean_query = form.cleaned_data['query']
             tag_list = re.findall(r"[\w']+", clean_query)
             tags = Tag.objects.filter(name__in=tag_list)
-            if request.user.is_staff:
+            if request.user.is_superuser:
                 findings = watson.search(clean_query, models=(Finding,))
                 findings = watson.search(clean_query, models=(Finding,))
                 tests = watson.search(clean_query, models=(Test,))
