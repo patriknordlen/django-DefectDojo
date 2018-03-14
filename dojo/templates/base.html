@@ -139,7 +139,7 @@
                             {% endif %}
                             <li>
                                 <a href="{% url 'customer' %}" title="Customer List" id="customer-parent"><i class="fa fa-list fa-fw"></i> <span>Customers</span></a>
-                                <ul class="nav nav-second-level" id="customer-container">
+                                <ul class="nav nav-second-level" id="customer-initials-container">
                                     <li><div class="text-center"><i class="fa fa-spin fa-spinner"></i></div></li>
                                 </ul>
                             </li>
@@ -286,7 +286,7 @@
     $(document).ready(function() {
         $('.has-popover').popover({'trigger':'hover'});
         $('.dropdown-toggle').click(function() { get_alerts(); reset_alerts(); });
-        $('#customer-parent').mouseenter(function() { get_customers(); });
+        $('#customer-parent').mouseenter(function() { get_customer_initials(); });
 
         setInterval(function() {
             update_alertcount();
@@ -328,14 +328,33 @@
             });
         }
 
-        function get_customers() {
+        function get_customers(char) {
             $.get("{% url 'customers_json' %}", function(data) {
-                $('#customer-container').empty();
+                $('#customer-initial-' + char).empty();
                 $.each(data, function(i, elem) {
-                    $('#customer-container').append('<li id="customer-' + elem.pk + '"><a href="/customer/' + elem.pk + '">' + elem.fields.name + '</a><ul id="product-container-' + elem.pk + '" class="nav nav-second-level"></ul></li>');
-                    $('#customer-' + elem.pk).mouseenter(function() { get_products(elem.pk); })
+                    if(elem.fields.name.startsWith(char)) {
+                        console.log(elem.fields.name);
+                        $('#customer-initial-' + char).append('<li id="customer-' + elem.pk + '"><a href="/customer/' + elem.pk + '">' + elem.fields.name + '</a><ul id="product-container-' + elem.pk + '" class="nav nav-second-level"></ul></li>');
+                        $('#customer-' + elem.pk).mouseenter(function() { get_products(elem.pk); })
+                    }
                 });
                 $('#customer-container').append('<li><a href="{% url "add_customer" %}"><i class="fa fa-fw fa-plus"></i> Add customer</a></li>');
+            });
+        }
+
+        function get_customer_initials() {
+            $.get("{% url 'customers_json' %}", function(data) {
+                $('#customer-initials-container').empty();
+                var initials = [];
+                $.each(data, function(i, elem) {
+                    initials.push(elem.fields.name.charAt(0));
+                });
+                $.each($.unique(initials.sort()), function(i, char) {
+                    $('#customer-initials-container').append('<li id="customers-' + char + '"><a>'+ char + '</a><ul id="customer-initial-' + char + '" class="nav nav-second-level"></ul></li>');
+                    $('#customers-' + char).mouseenter(function() { get_customers(char); });
+                    console.log(char);
+                });
+                $('#customer-initials-container').append('<li><a href="{% url "add_customer" %}"><i class="fa fa-fw fa-plus"></i> Add customer</a></li>');
             });
         }
 
