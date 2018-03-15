@@ -142,7 +142,11 @@ def closed_findings(request):
 
 
 def view_finding(request, fid):
-    finding = get_object_or_404(Finding, id=fid)
+    if request.user.is_superuser:
+        finding = get_object_or_404(Finding, id=fid)
+    else:
+        finding = get_object_or_404(Finding, id=fid, test__engagement__product__authorized_users__in=[request.user])
+        
     cred_finding = Cred_Mapping.objects.filter(finding=finding.id).select_related('cred_id').order_by('cred_id')
     creds = Cred_Mapping.objects.filter(test=finding.test.id).select_related('cred_id').order_by('cred_id')
     cred_engagement = Cred_Mapping.objects.filter(engagement=finding.test.engagement.id).select_related('cred_id').order_by('cred_id')

@@ -37,7 +37,11 @@ logger = logging.getLogger(__name__)
 
 @user_passes_test(lambda u: u.is_staff)
 def view_test(request, tid):
-    test = Test.objects.get(id=tid)
+    if request.user.is_superuser:
+        test = get_object_or_404(Test, id=tid)
+    else:
+        test = get_object_or_404(Test, id=tid, engagement__product__authorized_users__in=[request.user])
+
     notes = test.notes.all()
     person = request.user.username
     findings = Finding.objects.filter(test=test).order_by('-score')
