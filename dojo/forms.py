@@ -468,6 +468,14 @@ class EngForm(forms.ModelForm):
         queryset=Dojo_User.objects.filter(is_staff=True),
         required=True)
 
+    def __init__(self, *args, **kwargs):
+        auth_users = None
+        if 'auth_users' in kwargs:
+            auth_users = kwargs.pop('auth_users')
+        super(EngForm, self).__init__(*args, **kwargs)
+        if auth_users is not None:
+            self.fields['analysts'].queryset = auth_users
+    
     def is_valid(self):
         valid = super(EngForm, self).is_valid()
 
