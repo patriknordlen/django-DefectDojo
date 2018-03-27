@@ -1,11 +1,13 @@
 {% extends "base.html" %}
 {% load display_tags %}
+{% load navigation_tags %}
 {% load get_system_setting %}
 {% load static from staticfiles %}
 {% block add_styles %}
     ul#select_by_severity a:hover, ul#bulk_edit a:hover {
     cursor: pointer;
     }
+    .popover { max-width: 50%; }
 {% endblock %}
 {% block content %}
     <div class="panel panel-default">
@@ -194,7 +196,10 @@
                                        class="select_one {{ finding.severity }}"/>
                             </form>
                         </td>
-                        <td><a href="{% url 'view_finding' finding.id %}">{{ finding.title }}</a>
+                        <td><a href="{% url 'view_finding' finding.id %}"
+                            class="template-popover" data-placement="auto bottom" data-toggle="popover"
+                            data-trigger="hover" title="{{ finding.title|truncatechars:100 }}"
+                            data-content="{{ finding.description|truncatechars:500 }}">{{ finding.title }}</a>
                           {% if finding.tags %}
                               <sup>
                                   {% for tag in finding.tags %}
@@ -210,7 +215,7 @@
                             </span>
                         </td>
                         <td>{{ finding.verified }}</td>
-                        <td>{{ finding.false_positive }}</td>
+                        <td>{{ finding.false_p }}</td>
                         {% if "enable_jira"|get_system_setting %}
                         <td>
                         <a href="{{finding.jira_conf.url}}/browse/{{finding.jira.jira_key}}" target="_blank"> {{finding.jira.jira_key}} </a>
@@ -602,6 +607,7 @@
                 return false;
             });
 
+            $('[data-toggle="popover"]').popover({container: 'body'});
         });
 
     </script>
