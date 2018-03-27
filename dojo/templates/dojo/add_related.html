@@ -87,6 +87,8 @@
 <script src="{% static "dojo/js/index.js" %}"></script>
 <script type="application/javascript">
     $(function () {
+        $('.has-popover').popover({'trigger':'hover'});
+
         var endpoints = '';
         $(window.opener.document.getElementById('id_endpoints')).children('option').each(function () {
             endpoints += $(this).text();

@@ -87,7 +87,7 @@ class Login(unittest.TestCase):
         r = s.get(url)
         self.assertEqual(r.status_code, 200)
 
-    def test_metric_product_type_status(self):
+    def test_metric_customer_status(self):
         driver = self.login_page()
         cookies = driver.get_cookies()
         url = self.base_url+ "metrics/product/type"

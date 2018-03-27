@@ -63,7 +63,7 @@ if [[ ! -z "$YUM_CMD" ]]; then
 	sudo yum install gcc libmysqlclient-dev python-devel mysql-server mysql-devel MySQL-python python-setuptools python-pip nodejs wkhtmltopdf npm 
 	sudo yum groupinstall 'Development Tools'
 elif [[ ! -z "$APT_GET_CMD" ]]; then
-    sudo apt-get install libjpeg-dev gcc libssl-dev python-dev libmysqlclient-dev python-pip mysql-server nodejs-legacy wkhtmltopdf npm 
+    sudo apt-get install libjpeg-dev gcc libssl-dev python-dev libmysqlclient-dev python-pip mysql-server nodejs wkhtmltopdf npm 
 elif [[ ! -z "$BREW_CMD" ]]; then
     brew install gcc openssl python mysql node npm Caskroom/cask/wkhtmltopdf
 else
@@ -124,28 +124,28 @@ fi
 
 # Detect if we're in a a virtualenv
 if python -c 'import sys; print sys.real_prefix' 2>/dev/null; then
-    pip install .
+    pip install . --process-dependency-links
     python manage.py makemigrations dojo
     python manage.py makemigrations
     python manage.py migrate
     echo -e "${GREEN}${BOLD}Create Dojo superuser:"
     tput sgr0
     python manage.py createsuperuser
-    python manage.py loaddata product_type
+    python manage.py loaddata customer
     python manage.py loaddata test_type
     python manage.py loaddata development_environment
     python manage.py loaddata system_settings
     python manage.py installwatson
     python manage.py buildwatson
 else
-    sudo pip install .
+    sudo pip install . --process-dependency-links
     sudo python manage.py makemigrations dojo
     sudo python manage.py makemigrations
     sudo python manage.py migrate
     echo -e "${GREEN}${BOLD}Create Dojo superuser:"
     tput sgr0
     sudo python manage.py createsuperuser
-    sudo python manage.py loaddata product_type
+    sudo python manage.py loaddata customer
     sudo python manage.py loaddata test_type
     sudo python manage.py loaddata development_environment
     sudo python manage.py loaddata system_settings

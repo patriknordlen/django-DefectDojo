@@ -23,7 +23,6 @@ from jira.exceptions import JIRAError
 from dojo.models import Finding, Scan, Test, Engagement, Stub_Finding, Finding_Template, \
                         Report, Product, JIRA_PKey, JIRA_Issue, Dojo_User, User, Notes, \
                         FindingImage, Alerts, System_Settings, Notifications
-from django_slack import slack_message
 
 
 """
@@ -457,7 +456,7 @@ def opened_in_period(start_date, end_date, pt):
                         end_date.month, end_date.day,
                         tzinfo=timezone.get_current_timezone())
     opened_in_period = Finding.objects.filter(date__range=[start_date, end_date],
-                                              test__engagement__product__prod_type=pt,
+                                              test__engagement__product__customer=pt,
                                               verified=True,
                                               false_p=False,
                                               duplicate=False,
@@ -466,7 +465,7 @@ def opened_in_period(start_date, end_date, pt):
                                               severity__in=('Critical', 'High', 'Medium', 'Low')).values(
         'numerical_severity').annotate(Count('numerical_severity')).order_by('numerical_severity')
     total_opened_in_period = Finding.objects.filter(date__range=[start_date, end_date],
-                                                    test__engagement__product__prod_type=pt,
+                                                    test__engagement__product__customer=pt,
                                                     verified=True,
                                                     false_p=False,
                                                     duplicate=False,
@@ -487,7 +486,7 @@ def opened_in_period(start_date, end_date, pt):
            'start_date': start_date,
            'end_date': end_date,
            'closed': Finding.objects.filter(mitigated__range=[start_date, end_date],
-                                            test__engagement__product__prod_type=pt,
+                                            test__engagement__product__customer=pt,
                                             severity__in=(
                                                 'Critical', 'High', 'Medium', 'Low')).aggregate(total=Sum(
                Case(When(severity__in=('Critical', 'High', 'Medium', 'Low'), then=Value(1)),
@@ -498,7 +497,7 @@ def opened_in_period(start_date, end_date, pt):
                                                    duplicate=False,
                                                    out_of_scope=False,
                                                    mitigated__isnull=True,
-                                                   test__engagement__product__prod_type=pt,
+                                                   test__engagement__product__customer=pt,
                                                    severity__in=('Critical', 'High', 'Medium', 'Low')).count()}
 
     for o in opened_in_period:
@@ -1020,7 +1019,7 @@ def create_notification(event=None, **kwargs):
 
     def send_alert_notification(user=None):
         icon = kwargs.get('icon', 'info-circle')
-        alert = Alerts(user_id=user, 
+        alert = Alerts(user=user, 
                        title=kwargs.get('title'),
                        description=create_notification_message(event, 'alert'),
                        url=kwargs.get('url', reverse('alerts')),

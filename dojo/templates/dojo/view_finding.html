@@ -16,7 +16,7 @@
                         </sup>
                     {% endif %}
                     {% if finding.last_reviewed %}
-                        <small>Last reviewed {{ finding.last_reviewed | naturalday }}
+                        <small>{{ finding.cvss_vector }} - Last reviewed {{ finding.last_reviewed | naturalday }}
                             by {{ finding.last_reviewed_by }}</small>
                     {% else %}
                         <small>Last reviewed {{ finding.date | naturalday }} by {{ finding.reporter }}</small>
@@ -123,48 +123,35 @@
                         </th>
                     </tr>
                 {% endif %}
+                {% if finding.cvss3 %}
                 <tr>
-                    <th>Severity</th>
-                    <th>Status</th>
-                    {% if finding.risk_acceptance_set.all %}
-                        <th>Acceptance</th>
-                    {% endif %}
-                    <!--<th>Build ID</th>-->
-                    <th>Date discovered</th>
-                    <th>Age</th>
-                    <th>Reporter</th>
-                    {% if finding.mitigated %}
-                        <th>Date Mitigated</th>
-                        <th>Mitigated By</th>
-                    {% endif %}
+                    <th>CVSS Base Score</th>
+                    <th>Attack Vector</th>
+                    <th>Access Complexity</th>
+                    <th>Privileges Required</th>
+                    <th>User Interaction</th>
+                    <th>Scope</th>
+                    <th>Confidentiality Impact</th>
+                    <th>Integrity Impact</th>
+                    <th>Availability Impact</th>
                     {% if finding.cwe > 0 %}
                         <th>CWE</th>
                     {% endif %}
                 </tr>
                 <tr>
                     <td>
-                        <span class="label severity severity-{{ finding.severity }}">
-                            {% if finding.severity %}
-                                {{ finding.severity_display }}
-                            {% else %}
-                                Unknown
-                            {% endif %}
+                        <span class="label severity severity-{{ finding.new_sev_level }}">
+                            {{ finding.score }}
                         </span>
                     </td>
-                    <td> {% if finding.under_review %}Under Review, {% endif %}{{ finding.status }}</td>
-                    {% if finding.risk_acceptance_set.all %}
-                        <td>
-                            <a href="{% url 'view_risk' finding.test.engagement.id finding.risk_acceptance_set.all.0.id %}">
-                                View Risk Acceptance</a>
-                        </td>
-                    {% endif %}
-                    <td>{{ finding.date }}</td>
-                    <td>{{ finding.age }} days</td>
-                    <td>{{ finding.reporter }}</td>
-                    {% if finding.mitigated %}
-                        <td>{{ finding.mitigated }}</td>
-                        <td>{{ finding.mitigated_by }}</td>
-                    {% endif %}
+                    <td>{{ finding.cvss3.get_av_display }}</td>
+                    <td>{{ finding.cvss3.get_ac_display }}</td>
+                    <td>{{ finding.cvss3.get_pr_display }}</td>
+                    <td>{{ finding.cvss3.get_ui_display }}</td>
+                    <td>{{ finding.cvss3.get_s_display }}</td>
+                    <td>{{ finding.cvss3.get_c_display }}</td>
+                    <td>{{ finding.cvss3.get_i_display }}</td>
+                    <td>{{ finding.cvss3.get_a_display }}</td>
                     {% if finding.cwe > 0 %}
                         <td>
                             <a target="_blank" href="https://cwe.mitre.org/data/definitions/{{ finding.cwe }}.html">
@@ -174,6 +161,7 @@
                     {% endif %}
 
                 </tr>
+                {% endif %}
             </table>
         </div>
     </div>
@@ -238,7 +226,7 @@
     </div>
 
     <!--Cred Begin-->
-    <div class="row">
+    <!-- <div class="row">
     <div class="col-md-12" id="cred">
         <div class="panel panel-default">
             <div class="panel-heading">
@@ -336,7 +324,7 @@
             {% endif %}
         </div>
     </div>
-</div>
+</div> -->
 <!--Cred end -->
 
 
@@ -347,7 +335,11 @@
                         class="glyphicon glyphicon-chevron-up"></i></a></span></h4>
             </div>
             <div id="vuln_desc" class="panel-body finding-description collapse in">
-                <pre>{{ finding.description }}</pre>
+                {% if finding.formatting == 'Markdown' %}
+                    {{ finding.description|show_markdown }}
+                {% else %}
+                    <pre>{{ finding.description }}</pre>
+                {% endif %}
             </div>
         </div>
 
@@ -416,7 +408,11 @@
                         class="glyphicon glyphicon-chevron-up"></i></a></span></h4>
             </div>
             <div id="vuln_mitigation" class="panel-body collapse in">
-                <pre>{{ finding.mitigation }}</pre>
+                {% if finding.formatting == 'Markdown' %}
+                    {{ finding.mitigation|show_markdown }}
+                {% else %}
+                    <pre>{{ finding.mitigation }}</pre>
+                {% endif %}
             </div>
         </div>
         {% if finding.burprawrequestresponse_set.all %}
@@ -458,7 +454,11 @@
                         class="glyphicon glyphicon-chevron-up"></i></a></span></h4>
             </div>
             <div id="vuln_impact" class="panel-body collapse in">
-                <pre>{{ finding.impact }}</pre>
+                {% if finding.formatting == 'Markdown' %}
+                    {{ finding.impact|show_markdown }}
+                {% else %}
+                    <pre>{{ finding.impact }}</pre>
+                {% endif %}
             </div>
         </div>
         <div class="panel panel-default">
@@ -467,7 +467,11 @@
                         class="glyphicon glyphicon-chevron-up"></i></a></span></h4>
             </div>
             <div id="vuln_refs" class="panel-body collapse in">
-                <pre>{{ finding.references }}</pre>
+                {% if finding.formatting == 'Markdown' %}
+                    {{ finding.references|show_markdown }}
+                {% else %}
+                    <pre>{{ finding.references }}</pre>
+                {% endif %}
             </div>
         </div>
     </div>

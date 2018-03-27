@@ -193,8 +193,8 @@
   sudo: yes
   sudo_user: '{{ dd_user }}'
 
-- name: Run Django 'loaddata' command for product_type
-  django_manage: command='loaddata product_type' app_path={{ dd_install_dir }} virtualenv={{ venv_dir }}
+- name: Run Django 'loaddata' command for customer
+  django_manage: command='loaddata customer' app_path={{ dd_install_dir }} virtualenv={{ venv_dir }}
   sudo: yes
   sudo_user: '{{ dd_user }}'
 

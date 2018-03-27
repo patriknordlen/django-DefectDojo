@@ -34,7 +34,7 @@ setupdb() {
   python manage.py makemigrations
   python manage.py migrate
   python manage.py syncdb --noinput
-  python manage.py loaddata product_type
+  python manage.py loaddata customer
   python manage.py loaddata test_type
   python manage.py loaddata development_environment
   python manage.py loaddata system_settings

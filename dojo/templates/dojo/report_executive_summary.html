@@ -1,0 +1,16 @@
+{% block content %}
+{% load get_system_setting %}
+<p>{{ "team_name"|get_system_setting }} have conducted a security assessment of {{ engagement.product.name }} during the period {{ engagement.target_start }}
+    - {{ engagement.target_end }}. The purpose of the assignment was to identify vulnerabilities that could be used by an
+    attacker to compromise the application in any way. The assessment was performed in a {{ engagement.environment }} environment.</p>
+
+<p>Information about IP numbers in scope as well as some limited information about the purpose served
+by the systems were given before the tests were carried out. The assessment was done by carrying 
+out initial interviews of staff responsible for the environment, scanning the environment with 
+automated tools and following up with manual analysis on findings that were deemed to be of interest.</p>
+
+<p><b>TODO: add your general summary of the results of the assessment here.</b></p>
+
+<p><b>Below is a summary of the most important findings from the assessment</b>:
+<ul><li>TODO: Add findings.</li></ul></p>
+{% endblock %}

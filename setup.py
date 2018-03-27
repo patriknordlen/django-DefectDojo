@@ -31,7 +31,7 @@ setup(
         'kombu==3.0.37',
         'sqlalchemy',
         'django-polymorphic==1.2',
-        'pdfkit==0.5.0',
+        'pdfkit>=0.6.1',
         'django-overextends',
         'defusedxml',
         'django-tagging',
@@ -40,9 +40,13 @@ setup(
         'jira',
         'pycrypto',
         'lxml',
-        'django-multiselectfield'],
+        'django-multiselectfield',
+        'python-docx',
+        'docxtpl>=0.5.0',
+        'django-markdownx'],
     dependency_links=[
         "https://github.com/grendel513/python-pdfkit/tarball/master#egg=pdfkit-0.5.0",
+        "https://github.com/patriknordlen/python-docx-template/tarball/master#egg=docxtpl-0.5.0",
     ],
     url='https://github.com/owasp/django-DefectDojo'
 )

@@ -151,7 +151,6 @@ def get_item(item_node, test):
         port = rhost.group(11)
 
     ip = host_node.get('ip')
-    url = item_node.get('url')
     path = item_node.findall('path')[0].text
     location = item_node.findall('location')[0].text
 
@@ -227,7 +226,6 @@ def get_item(item_node, test):
                       description=background + "\n\n" + detail,
                       mitigation=remediation,
                       references=references,
-                      active=False,
                       verified=False,
                       false_p=False,
                       duplicate=False,

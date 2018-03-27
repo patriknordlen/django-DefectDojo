@@ -10,17 +10,19 @@ from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import user_passes_test
+from django.core import serializers
 from django.core.exceptions import PermissionDenied
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
+from django.template.loader import render_to_string
 
 from dojo.filters import ProductFilter, ProductFindingFilter
 from dojo.forms import ProductForm, EngForm, DeleteProductForm, ProductMetaDataForm, JIRAPKeyForm, JIRAFindingForm, AdHocFindingForm
-from dojo.models import Product_Type, Finding, Product, Engagement, ScanSettings, Risk_Acceptance, Test, JIRA_PKey, \
-    Tool_Product_Settings, Cred_User, Cred_Mapping, Test_Type
+from dojo.models import Customer, Finding, Product, Engagement, ScanSettings, Risk_Acceptance, Test, JIRA_PKey, \
+    Tool_Product_Settings, Cred_User, Cred_Mapping, Test_Type, Dojo_User
 from dojo.utils import get_page_items, add_breadcrumb, get_punchcard_data, get_system_setting, create_notification
 from custom_field.models import CustomFieldValue, CustomField
 from  dojo.tasks import add_epic_task
@@ -50,12 +52,12 @@ def product(request):
                           authorized_users__in=[request.user])
                       for word in product.name.split() if len(word) > 2]
 
-    product_type = None
+    customer = None
 
-    if 'prod_type' in request.GET:
-        p = request.GET.getlist('prod_type', [])
+    if 'customer' in request.GET:
+        p = request.GET.getlist('customer', [])
         if len(p) == 1:
-            product_type = get_object_or_404(Product_Type, id=p[0])
+            customer = get_object_or_404(Customer, id=p[0])
     """
     if 'tags' in request.GET:
         tags = request.GET.getlist('tags', [])
@@ -73,6 +75,15 @@ def product(request):
                    'user': request.user})
 
 
+def engagements_json(request, pid):
+    if request.user.is_superuser:
+        engagements = Engagement.objects.filter(product__id=pid).order_by('name')
+    else:
+        engagements = Engagement.objects.filter(product__id=pid,product__authorized_users__in=[request.user]).order_by('name')
+
+    return HttpResponse(serializers.serialize('json', engagements), content_type='application/json')
+
+
 def iso_to_gregorian(iso_year, iso_week, iso_day):
     jan4 = date(iso_year, 1, 4)
     start = jan4 - timedelta(days=jan4.isoweekday() - 1)
@@ -80,8 +91,11 @@ def iso_to_gregorian(iso_year, iso_week, iso_day):
 
 
 def view_product(request, pid):
-    prod = get_object_or_404(Product, id=pid)
-    engs = Engagement.objects.filter(product=prod, active=True)
+    if request.user.is_superuser:
+        prod = get_object_or_404(Product, id=pid)
+    else:
+        prod = get_object_or_404(Product, id=pid, authorized_users__in=[request.user])
+    engs = Engagement.objects.filter(product=prod)
     i_engs = Engagement.objects.filter(product=prod, active=False)
     scan_sets = ScanSettings.objects.filter(product=prod)
     tools = Tool_Product_Settings.objects.filter(product=prod).order_by('name')
@@ -110,10 +124,6 @@ def view_product(request, pid):
 
     tests = Test.objects.filter(engagement__product=prod)
 
-    risk_acceptances = Risk_Acceptance.objects.filter(engagement__in=Engagement.objects.filter(product=prod))
-
-    accepted_findings = [finding for ra in risk_acceptances
-                         for finding in ra.accepted_findings.all()]
 
     verified_findings = Finding.objects.filter(test__engagement__product=prod,
                                                date__range=[start_date, end_date],
@@ -137,7 +147,6 @@ def view_product(request, pid):
                                            verified=True,
                                            duplicate=False,
                                            out_of_scope=False,
-                                           active=True,
                                            mitigated__isnull=True)
 
     closed_findings = Finding.objects.filter(test__engagement__product=prod,
@@ -148,7 +157,7 @@ def view_product(request, pid):
                                              out_of_scope=False,
                                              mitigated__isnull=False)
 
-    start_date = datetime.combine(start_date, datetime.min.time())
+    start_date = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
 
     r = relativedelta(end_date, start_date)
     weeks_between = int(ceil((((r.years * 12) + r.months) * 4.33) + (r.days / 7)))
@@ -217,17 +226,6 @@ def view_product(request, pid):
             else:
                 medium_weekly[x] = {'count': 1, 'week': y}
 
-    for a in accepted_findings:
-        iso_cal = a.date.isocalendar()
-        x = iso_to_gregorian(iso_cal[0], iso_cal[1], 1)
-        y = x.strftime("<span class='small'>%m/%d<br/>%Y</span>")
-        x = (tcalendar.timegm(x.timetuple()) * 1000)
-
-        if x in open_close_weekly:
-            open_close_weekly[x]['accepted'] += 1
-        else:
-            open_close_weekly[x] = {'closed': 0, 'open': 0, 'accepted': 1}
-            open_close_weekly[x]['week'] = y
 
     test_data = {}
     for t in tests:
@@ -248,7 +246,6 @@ def view_product(request, pid):
                    'verified_findings': verified_findings,
                    'open_findings': open_findings,
                    'closed_findings': closed_findings,
-                   'accepted_findings': accepted_findings,
                    'new_findings': new_verified_findings,
                    'start_date': start_date,
                    'punchcard': punchcard,
@@ -351,7 +348,7 @@ def edit_product(request, pid):
             return HttpResponseRedirect(reverse('view_product', args=(pid,)))
     else:
         form = ProductForm(instance=prod,
-                           initial={'auth_users': prod.authorized_users.all(),
+                           initial={'authorized_users': prod.authorized_users.all(),
                                     'tags': get_tag_list(Tag.objects.get_for_object(prod))})
 
         if get_system_setting('enable_jira') and jira_enabled:
@@ -440,11 +437,8 @@ def new_eng_for_app(request, pid):
         if form.is_valid():
             new_eng = form.save(commit=False)
             new_eng.product = prod
-            if new_eng.threat_model:
-                new_eng.progress = 'threat_model'
-            else:
-                new_eng.progress = 'other'
             new_eng.save()
+            form.save_m2m()
             if get_system_setting('enable_jira'):
                     #Test to make sure there is a Jira project associated the product
                     try:
@@ -463,14 +457,14 @@ def new_eng_for_app(request, pid):
                                  'Engagement added successfully.',
                                  extra_tags='alert-success')
 
-            create_notification(event='engagement_added', title='Engagement added', engagement=new_eng, url=request.build_absolute_uri(reverse('view_engagement', args=(new_eng.id,))), objowner=new_eng.lead)
+            create_notification(event='engagement_added', title='Engagement added', engagement=new_eng, url=request.build_absolute_uri(reverse('view_engagement', args=(new_eng.id,))), objowner=new_eng.analysts.all())
 
             if "_Add Tests" in request.POST:
                 return HttpResponseRedirect(reverse('add_tests', args=(new_eng.id,)))
             else:
                 return HttpResponseRedirect(reverse('view_engagement', args=(new_eng.id,)))
     else:
-        form = EngForm(initial={})
+        form = EngForm(auth_users = (prod.authorized_users.all() | Dojo_User.objects.filter(is_superuser=True)).distinct())
         if(get_system_setting('enable_jira')):
                 if JIRA_PKey.objects.filter(product=prod).count() != 0:
                     jform = JIRAFindingForm(prefix='jiraform', enabled=JIRA_PKey.objects.get(product=prod).push_all_issues)
@@ -575,7 +569,7 @@ def ad_hoc_finding(request, pid):
             test.save()
     except:
         eng = Engagement(name="Ad Hoc Engagement", target_start=timezone.now(),
-                         target_end=timezone.now(), active=False, product=prod)
+                         target_end=timezone.now(), product=prod)
         eng.save()
         test = Test(engagement=eng, test_type=Test_Type.objects.get(name="Pen Test"),
                     target_start=timezone.now(), target_end=timezone.now())
@@ -598,7 +592,7 @@ def ad_hoc_finding(request, pid):
             new_finding.reporter = request.user
             new_finding.numerical_severity = Finding.get_numerical_severity(
                 new_finding.severity)
-            if new_finding.false_p or new_finding.active is False:
+            if new_finding.false_p:
                 new_finding.mitigated = timezone.now()
                 new_finding.mitigated_by = request.user
             create_template = new_finding.is_template

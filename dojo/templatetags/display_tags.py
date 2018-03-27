@@ -12,7 +12,7 @@ from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
 from django.conf import settings
 from dojo.utils import prepare_for_view, get_system_setting
-
+from markdownx.utils import markdownify
 from dojo.models import Check_List, FindingImage, FindingImageAccessToken, Finding, System_Settings
 
 register = template.Library()
@@ -162,3 +162,10 @@ def severity_value(value):
         pass
 
     return value
+
+@register.filter
+def show_markdown(text):
+    if text is not None:
+        return mark_safe(markdownify(escape(text)))
+    else:
+        return ''

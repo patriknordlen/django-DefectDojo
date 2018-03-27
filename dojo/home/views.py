@@ -35,6 +35,7 @@ def dashboard(request):
     now = timezone.now()
     seven_days_ago = now - timedelta(days=7)
     if request.user.is_superuser:
+        engagements = Engagement.objects.filter(active=True).order_by('id')
         engagement_count = Engagement.objects.filter(active=True).count()
         finding_count = Finding.objects.filter(verified=True,
                                                mitigated=None,
@@ -49,7 +50,9 @@ def dashboard(request):
         # forever counts
         findings = Finding.objects.filter(verified=True)
     else:
-        engagement_count = Engagement.objects.filter(lead=request.user,
+        engagements = Engagement.objects.filter(analysts__in=[request.user],
+                                                     active=True).order_by('id')
+        engagement_count = Engagement.objects.filter(analysts__in=[request.user],
                                                      active=True).count()
         finding_count = Finding.objects.filter(reporter=request.user,
                                                verified=True,
@@ -59,9 +62,6 @@ def dashboard(request):
         mitigated_count = Finding.objects.filter(mitigated_by=request.user,
                                                  mitigated__range=[seven_days_ago,
                                                                    now]).count()
-
-        accepted_count = len([finding for ra in Risk_Acceptance.objects.filter(
-            reporter=request.user, created__range=[seven_days_ago, now]) for finding in ra.accepted_findings.all()])
 
         # forever counts
         findings = Finding.objects.filter(reporter=request.user,
@@ -125,15 +125,10 @@ def dashboard(request):
     add_breadcrumb(request=request, clear=True)
     return render(request,
                   'dojo/dashboard.html',
-                  {'engagement_count': engagement_count,
-                   'finding_count': finding_count,
-                   'mitigated_count': mitigated_count,
-                   'accepted_count': accepted_count,
-                   'critical': sev_counts['Critical'],
-                   'high': sev_counts['High'],
-                   'medium': sev_counts['Medium'],
-                   'low': sev_counts['Low'],
-                   'info': sev_counts['Info'],
+                  {'active_engagements': engagements.filter(status='In Progress'),
+                   'active_engagement_count': engagements.filter(status='In Progress').count(),
+                   'upcoming_engagements': engagements.filter(status__in=['Planned','Preliminary']),
+                   'upcoming_engagement_count': engagements.filter(status__in=['Planned','Preliminary']).count(),
                    'by_month': by_month,
                    'punchcard': punchcard,
                    'ticks': ticks,

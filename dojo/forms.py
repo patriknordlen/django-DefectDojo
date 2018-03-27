@@ -7,6 +7,7 @@ from dateutil.relativedelta import relativedelta
 from django import forms
 from django.core import validators
 from django.core.validators import RegexValidator
+from django.core.exceptions import MultipleObjectsReturned
 from django.forms import modelformset_factory
 from django.forms.widgets import Widget, Select
 from django.utils.dates import MONTHS
@@ -14,14 +15,18 @@ from django.utils.safestring import mark_safe
 from django.utils import timezone
 from tagging.forms import TagField
 from tagging.models import Tag
+from glob import glob
+from os.path import basename
 
 from dojo import settings
-from dojo.models import Finding, Product_Type, Product, ScanSettings, VA, \
+from dojo.models import Finding, Customer, Product, ScanSettings, VA, \
     Check_List, User, Engagement, Test, Test_Type, Notes, Risk_Acceptance, \
     Development_Environment, Dojo_User, Scan, Endpoint, Stub_Finding, Finding_Template, Report, FindingImage, \
     JIRA_Issue, JIRA_PKey, JIRA_Conf, UserContactInfo, Tool_Type, Tool_Configuration, Tool_Product_Settings, \
-    Cred_User, Cred_Mapping, System_Settings, Notifications
+    Cred_User, Cred_Mapping, System_Settings, Notifications, CVSSv2, CVSSv3
 from dojo.utils import get_system_setting
+from tinymce.widgets import TinyMCE
+from markdownx.fields import MarkdownxFormField
 
 RE_DATE = re.compile(r'(\d{4})-(\d\d?)-(\d\d?)$')
 
@@ -57,6 +62,14 @@ class MultipleSelectWithPopPlusMinus(forms.SelectMultiple):
 
         return mark_safe(popup_plus)
 
+
+class CVSSSelect(forms.Select):
+    def render(self, name, value, *args, **kwargs):
+        html = """<fieldset class="cvss">"""
+        for val,desc in self.choices:
+            html += '<input name="{0}" value="{1}" id="{0}_{1}" type="radio" {2}><label for="{0}_{1}">{3} ({1})</label>'.format(name, val, "checked" if val == value else "", desc)
+        html += "</fieldset>"
+        return mark_safe(html)
 
 class MonthYearWidget(Widget):
     """
@@ -136,10 +149,11 @@ class MonthYearWidget(Widget):
         return data.get(name, None)
 
 
-class Product_TypeForm(forms.ModelForm):
+class CustomerForm(forms.ModelForm):
+    name = forms.CharField(required=True)
     class Meta:
-        model = Product_Type
-        fields = ['name', 'critical_product', 'key_product']
+        model = Customer
+        fields = ['name']
 
 
 class Test_TypeForm(forms.ModelForm):
@@ -157,13 +171,13 @@ class Development_EnvironmentForm(forms.ModelForm):
 class ProductForm(forms.ModelForm):
     name = forms.CharField(max_length=50, required=True)
     description = forms.CharField(widget=forms.Textarea(attrs={}),
-                                  required=True)
+                                  required=False)
     tags = forms.CharField(widget=forms.SelectMultiple(choices=[]),
                            required=False,
                            help_text="Add tags that help describe this product.  "
                                      "Choose from the list or add new tags.  Press TAB key to add.")
-    prod_type = forms.ModelChoiceField(label='Product Type',
-                                       queryset=Product_Type.objects.all().order_by('name'),
+    customer = forms.ModelChoiceField(label='Customer',
+                                       queryset=Customer.objects.all().order_by('name'),
                                        required=True)
 
     authorized_users = forms.ModelMultipleChoiceField(
@@ -176,13 +190,12 @@ class ProductForm(forms.ModelForm):
         tags = Tag.objects.usage_for_model(Product)
         t = [(tag.name, tag.name) for tag in tags]
         super(ProductForm, self).__init__(*args, **kwargs)
-        self.fields['authorized_users'].queryset = non_staff
+        self.fields['authorized_users'].queryset = Dojo_User.objects.all()
         self.fields['tags'].widget.choices = t
 
     class Meta:
         model = Product
-        fields = ['name', 'description', 'tags', 'prod_manager', 'tech_contact', 'manager', 'prod_type',
-                  'authorized_users']
+        fields = ['name', 'description', 'tags', 'customer','authorized_users']
 
 
 class DeleteProductForm(forms.ModelForm):
@@ -192,7 +205,7 @@ class DeleteProductForm(forms.ModelForm):
     class Meta:
         model = Product
         exclude = ['name', 'description', 'prod_manager', 'tech_contact', 'manager', 'created',
-                   'prod_type', 'updated', 'tid', 'authorized_users', 'product_manager',
+                   'customer', 'updated', 'tid', 'authorized_users', 'product_manager',
                    'technical_contact', 'team_manager']
 
 
@@ -205,24 +218,23 @@ class ProductMetaDataForm(forms.ModelForm):
         exclude = ['field_type', 'content_type', 'default_value', 'is_required', 'field_choices']
 
 
-class Product_TypeProductForm(forms.ModelForm):
+class CustomerProductForm(forms.ModelForm):
     name = forms.CharField(max_length=50, required=True)
     description = forms.CharField(widget=forms.Textarea(attrs={}),
-                                  required=True)
+                                  required=False)
+    customer = forms.IntegerField(widget=forms.HiddenInput())
 
     authorized_users = forms.ModelMultipleChoiceField(
         queryset=None,
         required=False, label="Authorized Users")
 
     def __init__(self, *args, **kwargs):
-        non_staff = User.objects.exclude(is_staff=True)
-        super(Product_TypeProductForm, self).__init__(*args, **kwargs)
-        self.fields['authorized_users'].queryset = non_staff
+        super(CustomerProductForm, self).__init__(*args, **kwargs)
+        self.fields['authorized_users'].queryset = Dojo_User.objects.all()
 
     class Meta:
         model = Product
-        fields = ['name', 'description', 'product_manager', 'technical_contact', 'team_manager', 'prod_type',
-                  'authorized_users']
+        fields = ['name', 'description', 'authorized_users']
 
 
 class ImportScanForm(forms.Form):
@@ -244,8 +256,6 @@ class ImportScanForm(forms.Form):
     minimum_severity = forms.ChoiceField(help_text='Minimum severity level to be imported',
                                          required=True,
                                          choices=SEVERITY_CHOICES[0:4])
-    active = forms.BooleanField(help_text="Select if these findings are currently active.", required=False)
-    verified = forms.BooleanField(help_text="Select if these findings have been verified.", required=False)
     scan_type = forms.ChoiceField(required=True, choices=SCAN_TYPE_CHOICES)
 
     tags = forms.CharField(widget=forms.SelectMultiple(choices=[]),
@@ -454,14 +464,18 @@ class EngForm(forms.ModelForm):
         attrs={'class': 'datepicker'}))
     target_end = forms.DateField(widget=forms.TextInput(
         attrs={'class': 'datepicker'}))
-    threat_model = forms.BooleanField(required=False)
-    api_test = forms.BooleanField(required=False, label='API Test')
-    pen_test = forms.BooleanField(required=False)
-    lead = forms.ModelChoiceField(
-        queryset=User.objects.exclude(is_staff=False),
-        required=True, label="Testing Lead")
-    test_strategy = forms.URLField(required=False, label="Test Strategy URL")
+    analysts = forms.ModelMultipleChoiceField(
+        queryset=Dojo_User.objects.filter(is_staff=True),
+        required=True)
 
+    def __init__(self, *args, **kwargs):
+        auth_users = None
+        if 'auth_users' in kwargs:
+            auth_users = kwargs.pop('auth_users')
+        super(EngForm, self).__init__(*args, **kwargs)
+        if auth_users is not None:
+            self.fields['analysts'].queryset = auth_users
+    
     def is_valid(self):
         valid = super(EngForm, self).is_valid()
 
@@ -478,7 +492,7 @@ class EngForm(forms.ModelForm):
         model = Engagement
         exclude = ('first_contacted', 'version', 'eng_type', 'real_start',
                    'real_end', 'requester', 'reason', 'updated', 'report_type',
-                   'product')
+                   'product','executive_summary','technical_summary')
 
 
 class EngForm2(forms.ModelForm):
@@ -500,10 +514,6 @@ class EngForm2(forms.ModelForm):
         attrs={'class': 'datepicker'}))
     test_options = (('API', 'API Test'), ('Static', 'Static Check'),
                     ('Pen', 'Pen Test'), ('Web App', 'Web Application Test'))
-    lead = forms.ModelChoiceField(
-        queryset=User.objects.exclude(is_staff=False),
-        required=True, label="Testing Lead")
-    test_strategy = forms.URLField(required=False, label="Test Strategy URL")
 
     def __init__(self, *args, **kwargs):
         tags = Tag.objects.usage_for_model(Engagement)
@@ -538,26 +548,16 @@ class DeleteEngagementForm(forms.ModelForm):
         exclude = ['name', 'version', 'eng_type', 'first_contacted', 'target_start',
                    'target_end', 'lead', 'requester', 'reason', 'report_type',
                    'product', 'test_strategy', 'threat_model', 'api_test', 'pen_test',
-                   'check_list', 'status']
+                   'check_list', 'status', 'analysts', 'hours', 'description',
+                   'executive_summary','environment']
 
 
 class TestForm(forms.ModelForm):
     test_type = forms.ModelChoiceField(queryset=Test_Type.objects.all().order_by('name'))
-    environment = forms.ModelChoiceField(
-        queryset=Development_Environment.objects.all().order_by('name'))
-    # credential = forms.ModelChoiceField(Cred_User.objects.all(), required=False)
-    target_start = forms.DateTimeField(widget=forms.TextInput(
-        attrs={'class': 'datepicker'}))
-    target_end = forms.DateTimeField(widget=forms.TextInput(
-        attrs={'class': 'datepicker'}))
     tags = forms.CharField(widget=forms.SelectMultiple(choices=[]),
                            required=False,
                            help_text="Add tags that help describe this test.  "
                                      "Choose from the list or add new tags.  Press TAB key to add.")
-    lead = forms.ModelChoiceField(
-        queryset=User.objects.exclude(is_staff=False),
-        required=False, label="Testing Lead")
-
     def __init__(self, *args, **kwargs):
         tags = Tag.objects.usage_for_model(Test)
         t = [(tag.name, tag.name) for tag in tags]
@@ -566,7 +566,7 @@ class TestForm(forms.ModelForm):
 
     class Meta:
         model = Test
-        fields = ['test_type', 'target_start', 'target_end', 'environment', 'percent_complete', 'tags', 'lead']
+        fields = ['test_type', 'tags']
 
 
 class DeleteTestForm(forms.ModelForm):
@@ -584,22 +584,25 @@ class DeleteTestForm(forms.ModelForm):
                    'lead')
 
 
+class CVSSv3Form(forms.ModelForm):
+    av = forms.ChoiceField(label='CVSS Access Vector (AV)', choices=CVSSv3.AV_CHOICES, widget=CVSSSelect, required=False)
+    ac = forms.ChoiceField(label='CVSS Access Complexity (AC)', choices=CVSSv3.AC_CHOICES, widget=CVSSSelect, required=False)
+    pr = forms.ChoiceField(label='CVSS Privileges Required (PR)', choices=CVSSv3.PR_CHOICES, widget=CVSSSelect, required=False)
+    ui = forms.ChoiceField(label='CVSS User Interaction (UI)', choices=CVSSv3.UI_CHOICES, widget=CVSSSelect, required=False)
+    s = forms.ChoiceField(label='CVSS Scope (S)', choices=CVSSv3.S_CHOICES, widget=CVSSSelect, required=False)
+    c = forms.ChoiceField(label='CVSS Confidentiality (C)', choices=CVSSv3.C_CHOICES, widget=CVSSSelect, required=False)
+    i = forms.ChoiceField(label='CVSS Integrity (I)', choices=CVSSv3.I_CHOICES, widget=CVSSSelect, required=False)
+    a = forms.ChoiceField(label='CVSS Availability (A)', choices=CVSSv3.A_CHOICES, widget=CVSSSelect, required=False)
+
+    class Meta:
+        model = CVSSv3
+        exclude = ['']
+
 class AddFindingForm(forms.ModelForm):
     title = forms.CharField(max_length=1000)
-    date = forms.DateField(required=True,
-                           widget=forms.TextInput(attrs={'class':
-                                                             'datepicker'}))
-    cwe = forms.IntegerField(required=False)
-    severity_options = (('Low', 'Low'), ('Medium', 'Medium'),
-                        ('High', 'High'), ('Critical', 'Critical'))
-    description = forms.CharField(widget=forms.Textarea)
-    severity = forms.ChoiceField(
-        choices=severity_options,
-        error_messages={
-            'required': 'Select valid choice: In Progress, On Hold, Completed',
-            'invalid_choice': 'Select valid choice: Critical,High,Medium,Low'})
-    mitigation = forms.CharField(widget=forms.Textarea)
-    impact = forms.CharField(widget=forms.Textarea)
+    description = forms.CharField(widget=forms.Textarea, required=False)
+    mitigation = forms.CharField(widget=forms.Textarea, required=False)
+    impact = forms.CharField(widget=forms.Textarea, required=False)
     endpoints = forms.ModelMultipleChoiceField(Endpoint.objects, required=False, label='Systems / Endpoints',
                                                widget=MultipleSelectWithPopPlusMinus(attrs={'size': '11'}))
     references = forms.CharField(widget=forms.Textarea, required=False)
@@ -609,8 +612,7 @@ class AddFindingForm(forms.ModelForm):
     def clean(self):
         # self.fields['endpoints'].queryset = Endpoint.objects.all()
         cleaned_data = super(AddFindingForm, self).clean()
-        if ((cleaned_data['active'] or cleaned_data['verified'])
-            and cleaned_data['duplicate']):
+        if cleaned_data['verified'] and cleaned_data['duplicate']:
             raise forms.ValidationError('Duplicate findings cannot be'
                                         ' verified or active')
         if cleaned_data['false_p'] and cleaned_data['verified']:
@@ -620,8 +622,8 @@ class AddFindingForm(forms.ModelForm):
 
     class Meta:
         model = Finding
-        order = ('title', 'severity', 'endpoints', 'description', 'impact')
-        exclude = ('reporter', 'url', 'numerical_severity', 'endpoint', 'images', 'under_review', 'reviewers',
+        order = ('title', 'endpoints', 'description', 'impact')
+        exclude = ('reporter', 'cwe', 'url', 'cvss2', 'cvss3', 'score', 'severity', 'date', 'numerical_severity', 'endpoint', 'images', 'under_review', 'reviewers',
                    'review_requested_by')
 
 
@@ -630,15 +632,7 @@ class AdHocFindingForm(forms.ModelForm):
     date = forms.DateField(required=True,
                            widget=forms.TextInput(attrs={'class':
                                                              'datepicker'}))
-    cwe = forms.IntegerField(required=False)
-    severity_options = (('Low', 'Low'), ('Medium', 'Medium'),
-                        ('High', 'High'), ('Critical', 'Critical'))
     description = forms.CharField(widget=forms.Textarea)
-    severity = forms.ChoiceField(
-        choices=severity_options,
-        error_messages={
-            'required': 'Select valid choice: In Progress, On Hold, Completed',
-            'invalid_choice': 'Select valid choice: Critical,High,Medium,Low'})
     mitigation = forms.CharField(widget=forms.Textarea)
     impact = forms.CharField(widget=forms.Textarea)
     endpoints = forms.ModelMultipleChoiceField(Endpoint.objects, required=False, label='Systems / Endpoints',
@@ -650,8 +644,7 @@ class AdHocFindingForm(forms.ModelForm):
     def clean(self):
         # self.fields['endpoints'].queryset = Endpoint.objects.all()
         cleaned_data = super(AdHocFindingForm, self).clean()
-        if ((cleaned_data['active'] or cleaned_data['verified'])
-            and cleaned_data['duplicate']):
+        if cleaned_data['verified'] and cleaned_data['duplicate']:
             raise forms.ValidationError('Duplicate findings cannot be'
                                         ' verified or active')
         if cleaned_data['false_p'] and cleaned_data['verified']:
@@ -668,47 +661,27 @@ class AdHocFindingForm(forms.ModelForm):
 
 class PromoteFindingForm(forms.ModelForm):
     title = forms.CharField(max_length=1000)
-    date = forms.DateField(required=True,
-                           widget=forms.TextInput(attrs={'class':
-                                                             'datepicker'}))
-    cwe = forms.IntegerField(required=False)
     severity_options = (('Low', 'Low'), ('Medium', 'Medium'),
                         ('High', 'High'), ('Critical', 'Critical'))
-    description = forms.CharField(widget=forms.Textarea)
-    severity = forms.ChoiceField(
-        choices=severity_options,
-        error_messages={
-            'required': 'Select valid choice: In Progress, On Hold, Completed',
-            'invalid_choice': 'Select valid choice: Critical,High,Medium,Low'})
-    mitigation = forms.CharField(widget=forms.Textarea)
-    impact = forms.CharField(widget=forms.Textarea)
+    description = forms.CharField(widget=forms.Textarea, required=False)
+    mitigation = forms.CharField(widget=forms.Textarea, required=False)
+    impact = forms.CharField(widget=forms.Textarea, required=False)
     endpoints = forms.ModelMultipleChoiceField(Endpoint.objects, required=False, label='Systems / Endpoints',
                                                widget=MultipleSelectWithPopPlusMinus(attrs={'size': '11'}))
     references = forms.CharField(widget=forms.Textarea, required=False)
 
     class Meta:
         model = Finding
-        order = ('title', 'severity', 'endpoints', 'description', 'impact')
-        exclude = ('reporter', 'url', 'numerical_severity', 'endpoint', 'active', 'false_p', 'verified', 'is_template',
+        order = ('title', 'endpoints', 'description', 'impact')
+        exclude = ('reporter', 'severity', 'cvss2', 'cvss3', 'cwe', 'score', 'date', 'url', 'numerical_severity', 'endpoint', 'active', 'false_p', 'verified', 'is_template',
                    'duplicate', 'out_of_scope', 'images', 'under_review', 'reviewers', 'review_requested_by')
 
 
 class FindingForm(forms.ModelForm):
     title = forms.CharField(max_length=1000)
-    date = forms.DateField(required=True,
-                           widget=forms.TextInput(attrs={'class':
-                                                             'datepicker'}))
-    cwe = forms.IntegerField(required=False)
-    severity_options = (('Low', 'Low'), ('Medium', 'Medium'),
-                        ('High', 'High'), ('Critical', 'Critical'))
-    description = forms.CharField(widget=forms.Textarea)
-    severity = forms.ChoiceField(
-        choices=severity_options,
-        error_messages={
-            'required': 'Select valid choice: In Progress, On Hold, Completed',
-            'invalid_choice': 'Select valid choice: Critical,High,Medium,Low'})
-    mitigation = forms.CharField(widget=forms.Textarea)
-    impact = forms.CharField(widget=forms.Textarea)
+    # date = forms.DateField(required=True,
+    #                        widget=forms.TextInput(attrs={'class':
+    #                                                          'datepicker'}))
     endpoints = forms.ModelMultipleChoiceField(Endpoint.objects, required=False, label='Systems / Endpoints',
                                                widget=MultipleSelectWithPopPlusMinus(attrs={'size': '11'}))
     references = forms.CharField(widget=forms.Textarea, required=False)
@@ -727,7 +700,7 @@ class FindingForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super(FindingForm, self).clean()
-        if (cleaned_data['active'] or cleaned_data['verified']) and cleaned_data['duplicate']:
+        if cleaned_data['verified'] and cleaned_data['duplicate']:
             raise forms.ValidationError('Duplicate findings cannot be'
                                         ' verified or active')
         if cleaned_data['false_p'] and cleaned_data['verified']:
@@ -738,7 +711,7 @@ class FindingForm(forms.ModelForm):
     class Meta:
         model = Finding
         order = ('title', 'severity', 'endpoints', 'description', 'impact')
-        exclude = ('reporter', 'url', 'numerical_severity', 'endpoint', 'images', 'under_review', 'reviewers',
+        exclude = ('reporter', 'cvss2', 'cvss3', 'date', 'score', 'severity', 'cwe', 'url', 'numerical_severity', 'endpoint', 'images', 'under_review', 'reviewers',
                    'review_requested_by')
 
 
@@ -749,7 +722,7 @@ class StubFindingForm(forms.ModelForm):
         model = Stub_Finding
         order = ('title',)
         exclude = (
-            'date', 'description', 'severity', 'reporter', 'test')
+            'cvss3', 'date', 'description', 'score', 'severity', 'reporter', 'test')
 
     def clean(self):
         cleaned_data = super(StubFindingForm, self).clean()
@@ -768,15 +741,6 @@ class FindingTemplateForm(forms.ModelForm):
                            required=False,
                            help_text="Add tags that help describe this finding template.  "
                                      "Choose from the list or add new tags.  Press TAB key to add.")
-    cwe = forms.IntegerField(label="CWE", required=False)
-    severity_options = (('Low', 'Low'), ('Medium', 'Medium'),
-                        ('High', 'High'), ('Critical', 'Critical'))
-    severity = forms.ChoiceField(
-        required=False,
-        choices=severity_options,
-        error_messages={
-            'required': 'Select valid choice: In Progress, On Hold, Completed',
-            'invalid_choice': 'Select valid choice: Critical,High,Medium,Low'})
 
     def __init__(self, *args, **kwargs):
         tags = Tag.objects.usage_for_model(Finding)
@@ -787,7 +751,7 @@ class FindingTemplateForm(forms.ModelForm):
     class Meta:
         model = Finding_Template
         order = ('title', 'cwe', 'severity', 'description', 'impact')
-        exclude = ('numerical_severity',)
+        exclude = ['cvss3','cwe','severity']
 
 
 class DeleteFindingTemplateForm(forms.ModelForm):
@@ -802,17 +766,11 @@ class DeleteFindingTemplateForm(forms.ModelForm):
 class FindingBulkUpdateForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super(FindingBulkUpdateForm, self).clean()
-        if (cleaned_data['active'] or cleaned_data['verified']) and cleaned_data['duplicate']:
-            raise forms.ValidationError('Duplicate findings cannot be'
-                                        ' verified or active')
-        if cleaned_data['false_p'] and cleaned_data['verified']:
-            raise forms.ValidationError('False positive findings cannot '
-                                        'be verified.')
         return cleaned_data
 
     class Meta:
         model = Finding
-        fields = ('severity', 'active', 'verified', 'false_p', 'duplicate', 'out_of_scope')
+        fields = ('severity','verified', 'false_p', 'duplicate', 'out_of_scope')
 
 
 class EditEndpointForm(forms.ModelForm):
@@ -931,12 +889,21 @@ class AddEndpointForm(forms.Form):
     def save(self):
         processed_endpoints = []
         for e in self.endpoints_to_process:
+            try:
             endpoint, created = Endpoint.objects.get_or_create(protocol=e[0],
                                                                host=e[1],
                                                                path=e[2],
                                                                query=e[3],
                                                                fragment=e[4],
                                                                product=self.product)
+            except MultipleObjectsReturned:
+                endpoint = Endpoint.objects.filter(protocol=e[0],
+                                                   host=e[1],
+                                                   path=e[2],
+                                                   query=e[3],
+                                                   fragment=e[4],
+                                                   product=self.product).first()
+
             processed_endpoints.append(endpoint)
         return processed_endpoints
 
@@ -1013,7 +980,9 @@ class DeleteEndpointForm(forms.ModelForm):
                    'path',
                    'query',
                    'fragment',
-                   'product')
+                   'product',
+                   'fqdn',
+                   'port')
 
 
 class EndpointMetaDataForm(forms.ModelForm):
@@ -1074,7 +1043,7 @@ class ClearFindingReviewForm(forms.ModelForm):
 
     class Meta:
         model = Finding
-        fields = ['active', 'verified', 'false_p', 'out_of_scope', 'duplicate']
+        fields = ['verified', 'false_p', 'out_of_scope', 'duplicate']
 
 
 class ReviewFindingForm(forms.Form):
@@ -1158,17 +1127,17 @@ class MetricsFilterForm(forms.Form):
                                          help_text=('Hold down "Control", or '
                                                     '"Command" on a Mac, to '
                                                     'select more than one.'))
-    exclude_product_types = forms.ModelMultipleChoiceField(
-        required=False, queryset=Product_Type.objects.all().order_by('name'))
+    exclude_customers = forms.ModelMultipleChoiceField(
+        required=False, queryset=Customer.objects.all().order_by('name'))
 
-    # add the ability to exclude the exclude_product_types field
+    # add the ability to exclude the exclude_customers field
     def __init__(self, *args, **kwargs):
-        exclude_product_types = kwargs.get('exclude_product_types', False)
-        if 'exclude_product_types' in kwargs:
-            del kwargs['exclude_product_types']
+        exclude_customers = kwargs.get('exclude_customers', False)
+        if 'exclude_customers' in kwargs:
+            del kwargs['exclude_customers']
         super(MetricsFilterForm, self).__init__(*args, **kwargs)
-        if exclude_product_types:
-            del self.fields['exclude_product_types']
+        if exclude_customers:
+            del self.fields['exclude_customers']
 
 
 class DojoUserForm(forms.ModelForm):
@@ -1219,8 +1188,8 @@ class ProductTypeCountsForm(forms.Form):
         'required': '*'})
     year = forms.ChoiceField(choices=get_years, required=True, error_messages={
         'required': '*'})
-    product_type = forms.ModelChoiceField(required=True,
-                                          queryset=Product_Type.objects.all(),
+    customer = forms.ModelChoiceField(required=True,
+                                          queryset=Customer.objects.all(),
                                           error_messages={
                                               'required': '*'})
 
@@ -1237,12 +1206,14 @@ class APIKeyForm(forms.ModelForm):
 
 
 class ReportOptionsForm(forms.Form):
-    yes_no = (('0', 'No'), ('1', 'Yes'))
-    include_finding_notes = forms.ChoiceField(choices=yes_no, label="Finding Notes")
-    include_finding_images = forms.ChoiceField(choices=yes_no, label="Finding Images")
-    include_executive_summary = forms.ChoiceField(choices=yes_no, label="Executive Summary")
-    include_table_of_contents = forms.ChoiceField(choices=yes_no, label="Table of Contents")
-    report_type = forms.ChoiceField(choices=(('AsciiDoc', 'AsciiDoc'), ('PDF', 'PDF')))
+    yes_no = (('1', 'Yes'), ('0', 'No'))
+    no_yes = (('0', 'No'), ('1', 'Yes'))
+    # include_finding_notes = forms.ChoiceField(choices=no_yes, label="Finding Notes")
+    # include_finding_images = forms.ChoiceField(choices=yes_no, label="Finding Images")
+    # include_executive_summary = forms.ChoiceField(choices=yes_no, label="Executive Summary")
+    # include_table_of_contents = forms.ChoiceField(choices=yes_no, label="Table of Contents")
+    report_type = forms.ChoiceField(choices=(('docx','docx'),('PDF', 'PDF'), ('AsciiDoc', 'AsciiDoc')))
+    report_template = forms.ChoiceField(choices=[(i,basename(f)) for i,f in enumerate(glob('dojo/templates/dojo/*.docx'))])
 
 
 class CustomReportOptionsForm(forms.Form):
@@ -1250,7 +1221,7 @@ class CustomReportOptionsForm(forms.Form):
     report_name = forms.CharField(required=False, max_length=100)
     include_finding_notes = forms.ChoiceField(required=False, choices=yes_no)
     include_finding_images = forms.ChoiceField(choices=yes_no, label="Finding Images")
-    report_type = forms.ChoiceField(required=False, choices=(('AsciiDoc', 'AsciiDoc'), ('PDF', 'PDF')))
+    report_type = forms.ChoiceField(required=False, choices=(('AsciiDoc', 'AsciiDoc'), ('PDF', 'PDF'),('docx','docx')))
 
 
 class DeleteReportForm(forms.ModelForm):

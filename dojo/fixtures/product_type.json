@@ -1,9 +1,0 @@
-[
-  {
-    "fields": {
-      "name": "Research and Development"
-    },
-    "model": "dojo.product_type",
-    "pk": 1
-  }
-]

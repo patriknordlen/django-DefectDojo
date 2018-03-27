@@ -17,7 +17,7 @@ from django.utils import timezone
 
 from dojo.filters import TemplateFindingFilter
 from dojo.forms import NoteForm, TestForm, FindingForm, \
-    DeleteTestForm, AddFindingForm, \
+    DeleteTestForm, AddFindingForm, CVSSv3Form, \
     ImportScanForm, ReImportScanForm, FindingBulkUpdateForm, JIRAFindingForm
 from dojo.models import Finding, Test, Notes, \
     BurpRawRequestResponse, Endpoint, Stub_Finding, Finding_Template, JIRA_PKey, Cred_User, Cred_Mapping, Dojo_User
@@ -37,13 +37,15 @@ logger = logging.getLogger(__name__)
 
 @user_passes_test(lambda u: u.is_staff)
 def view_test(request, tid):
-    test = Test.objects.get(id=tid)
+    if request.user.is_superuser:
+        test = get_object_or_404(Test, id=tid)
+    else:
+        test = get_object_or_404(Test, id=tid, engagement__product__authorized_users__in=[request.user])
+
     notes = test.notes.all()
     person = request.user.username
-    findings = Finding.objects.filter(test=test)
+    findings = Finding.objects.filter(test=test).order_by('-score')
     stub_findings = Stub_Finding.objects.filter(test=test)
-    cred_test = Cred_Mapping.objects.filter(test=test).select_related('cred_id').order_by('cred_id')
-    creds = Cred_Mapping.objects.filter(engagement=test.engagement).select_related('cred_id').order_by('cred_id')
 
     if request.method == 'POST':
         form = NoteForm(request.POST)
@@ -69,6 +71,7 @@ def view_test(request, tid):
     show_re_upload = any(test.test_type.name in code for code in ImportScanForm.SCAN_TYPE_CHOICES)
 
     add_breadcrumb(parent=test, top_level=False, request=request)
+
     return render(request, 'dojo/view_test.html',
                   {'test': test,
                    'findings': fpage,
@@ -78,8 +81,6 @@ def view_test(request, tid):
                    'person': person,
                    'request': request,
                    'show_re_upload': show_re_upload,
-                   'creds': creds,
-                   'cred_test': cred_test
                    })
 
 
@@ -99,8 +100,6 @@ def edit_test(request, tid):
                                  'Test saved.',
                                  extra_tags='alert-success')
 
-    form.initial['target_start'] = test.target_start.date()
-    form.initial['target_end'] = test.target_end.date()
     form.initial['tags'] = [tag.name for tag in test.tags]
 
     add_breadcrumb(parent=test, title="Edit", top_level=False, request=request)
@@ -160,7 +159,6 @@ def delete_test_note(request, tid, nid):
 
 
 @user_passes_test(lambda u: u.is_staff)
-@cache_page(60 * 5)  # cache for 5 minutes
 def test_calendar(request):
     if not 'lead' in request.GET or '0' in request.GET.getlist('lead'):
         tests = Test.objects.all()
@@ -205,7 +203,8 @@ def add_findings(request, tid):
     form_error = False
     enabled = False
     jform = None
-    form = AddFindingForm(initial={'date': timezone.now().date()})
+    fform = AddFindingForm(initial={'date': timezone.now().date()})
+    cform = CVSSv3Form()
 
     if get_system_setting('enable_jira') and JIRA_PKey.objects.filter(product=test.engagement.product).count() != 0:
         enabled = JIRA_PKey.objects.get(product=test.engagement.product).push_all_issues
@@ -214,21 +213,26 @@ def add_findings(request, tid):
         jform = None
 
     if request.method == 'POST':
-        form = AddFindingForm(request.POST)
-        if form.is_valid():
-            new_finding = form.save(commit=False)
+        fform = AddFindingForm(request.POST)
+        cform = CVSSv3Form(request.POST)
+        if cform.is_valid():
+            cvss3 = cform.save()
+        if fform.is_valid():
+            new_finding = fform.save(commit=False)
             new_finding.test = test
+            new_finding.cvss3 = cvss3
+            new_finding.score = cvss3.score
             new_finding.reporter = request.user
             new_finding.numerical_severity = Finding.get_numerical_severity(
                 new_finding.severity)
-            if new_finding.false_p or new_finding.active is False:
+            if new_finding.false_p:
                 new_finding.mitigated = timezone.now()
                 new_finding.mitigated_by = request.user
             create_template = new_finding.is_template
             # always false now since this will be deprecated soon in favor of new Finding_Template model
             new_finding.is_template = False
             new_finding.save()
-            new_finding.endpoints = form.cleaned_data['endpoints']
+            new_finding.endpoints = fform.cleaned_data['endpoints']
             new_finding.save()
             if 'jiraform-push_to_jira' in request.POST:
                 jform = JIRAFindingForm(request.POST, prefix='jiraform', enabled=enabled)
@@ -265,10 +269,10 @@ def add_findings(request, tid):
             else:
                 return HttpResponseRedirect(reverse('add_findings', args=(test.id,)))
         else:
-            if 'endpoints' in form.cleaned_data:
-                form.fields['endpoints'].queryset = form.cleaned_data['endpoints']
+            if 'endpoints' in fform.cleaned_data:
+                fform.fields['endpoints'].queryset = fform.cleaned_data['endpoints']
             else:
-                form.fields['endpoints'].queryset = Endpoint.objects.none()
+                fform.fields['endpoints'].queryset = Endpoint.objects.none()
             form_error = True
             messages.add_message(request,
                                  messages.ERROR,
@@ -276,7 +280,8 @@ def add_findings(request, tid):
                                  extra_tags='alert-danger')
     add_breadcrumb(parent=test, title="Add Finding", top_level=False, request=request)
     return render(request, 'dojo/add_findings.html',
-                  {'form': form,
+                  {'fform': fform,
+                   'cform': cform,
                    'test': test,
                    'temp': False,
                    'tid': tid,
@@ -293,15 +298,20 @@ def add_temp_finding(request, tid, fid):
     findings = Finding_Template.objects.all()
 
     if request.method == 'POST':
-        form = FindingForm(request.POST)
-        if form.is_valid():
-            new_finding = form.save(commit=False)
+        fform = FindingForm(request.POST)
+        cform = CVSSv3Form(request.POST)
+        if cform.is_valid():
+            cvss3 = cform.save()
+        if fform.is_valid():
+            new_finding = fform.save(commit=False)
             new_finding.test = test
+            new_finding.cvss3 = cvss3
+            new_finding.score = cvss3.score
             new_finding.reporter = request.user
             new_finding.numerical_severity = Finding.get_numerical_severity(
                 new_finding.severity)
             new_finding.date = datetime.today()
-            if new_finding.false_p or new_finding.active is False:
+            if new_finding.false_p:
                 new_finding.mitigated = timezone.now()
                 new_finding.mitigated_by = request.user
 
@@ -310,7 +320,7 @@ def add_temp_finding(request, tid, fid):
             # no further action needed here since this is already adding from template.
             new_finding.is_template = False
             new_finding.save()
-            new_finding.endpoints = form.cleaned_data['endpoints']
+            new_finding.endpoints = fform.cleaned_data['endpoints']
             new_finding.save()
             if 'jiraform-push_to_jira' in request.POST:
                     jform = JIRAFindingForm(request.POST, prefix='jiraform', enabled=True)
@@ -351,8 +361,7 @@ def add_temp_finding(request, tid, fid):
                                  extra_tags='alert-danger')
 
     else:
-        form = FindingForm(initial={'active': False,
-                                    'date': timezone.now().date(),
+        fform = FindingForm(initial={'active': False,
                                     'verified': False,
                                     'false_p': False,
                                     'duplicate': False,
@@ -365,6 +374,7 @@ def add_temp_finding(request, tid, fid):
                                     'impact': finding.impact,
                                     'references': finding.references,
                                     'numerical_severity': finding.numerical_severity})
+        cform = CVSSv3Form(instance=finding.cvss3)
         if get_system_setting('enable_jira'):
             enabled = JIRA_PKey.objects.get(product=test.engagement.product).push_all_issues
             jform = JIRAFindingForm(enabled=enabled, prefix='jiraform')
@@ -373,7 +383,8 @@ def add_temp_finding(request, tid, fid):
 
     add_breadcrumb(parent=test, title="Add Finding", top_level=False, request=request)
     return render(request, 'dojo/add_findings.html',
-                  {'form': form,
+                  {'fform': fform,
+                   'cform': cform,
                    'jform': jform,
                    'findings': findings,
                    'temp': True,
@@ -413,7 +424,6 @@ def finding_bulk_update(request, tid):
             finding_to_update = request.POST.getlist('finding_to_update')
             finds = Finding.objects.filter(test=test, id__in=finding_to_update)
             finds.update(severity=form.cleaned_data['severity'],
-                         active=form.cleaned_data['active'],
                          verified=form.cleaned_data['verified'],
                          false_p=form.cleaned_data['false_p'],
                          duplicate=form.cleaned_data['duplicate'],
@@ -431,6 +441,20 @@ def finding_bulk_update(request, tid):
 
     return HttpResponseRedirect(reverse('view_test', args=(test.id,)))
 
+@user_passes_test(lambda u: u.is_staff)
+def finding_bulk_remove(request, tid):
+    test = get_object_or_404(Test, id=tid)
+    finding = test.finding_set.all()[0]
+    if request.method == "POST":
+        finding_to_remove = request.POST.getlist('finding_to_remove')
+        removedcount = Finding.objects.filter(test=test, id__in=finding_to_remove).count()
+        Finding.objects.filter(test=test, id__in=finding_to_remove).delete()
+        messages.add_message(request,
+                                messages.SUCCESS,
+                                'Removed %s findings.' % removedcount,
+                                extra_tags='alert-success')
+
+    return HttpResponseRedirect(reverse('view_test', args=(test.id,)))
 
 @user_passes_test(lambda u: u.is_staff)
 def re_import_scan_results(request, tid):
@@ -450,7 +474,6 @@ def re_import_scan_results(request, tid):
             min_sev = form.cleaned_data['minimum_severity']
             file = request.FILES['file']
             scan_type = t.test_type.name
-            active = form.cleaned_data['active']
             verified = form.cleaned_data['verified']
             tags = request.POST.getlist('tags')
             ts = ", ".join(tags)
@@ -496,7 +519,6 @@ def re_import_scan_results(request, tid):
                             # it was once fixed, but now back
                             find.mitigated = None
                             find.mitigated_by = None
-                            find.active = True
                             find.verified = verified
                             find.save()
                             note = Notes(entry="Re-activated by %s re-upload." % scan_type,
@@ -512,7 +534,6 @@ def re_import_scan_results(request, tid):
                         item.last_reviewed = timezone.now()
                         item.last_reviewed_by = request.user
                         item.verified = verified
-                        item.active = active
                         item.save()
                         finding_added_count += 1
                         new_items.append(item.id)
@@ -554,7 +575,6 @@ def re_import_scan_results(request, tid):
                     finding = Finding.objects.get(id=finding_id)
                     finding.mitigated = datetime.combine(scan_date, timezone.now().time())
                     finding.mitigated_by = request.user
-                    finding.active = False
                     finding.save()
                     note = Notes(entry="Mitigated by %s re-upload." % scan_type,
                                  author=request.user)

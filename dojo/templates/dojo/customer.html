@@ -6,7 +6,7 @@
             <div class="panel panel-default">
                 <div class="panel-heading tight">
                     <h3 class="has-filters">
-                        Product Type List
+                        Customer List
                         <div class="dropdown pull-right">
                             <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenu1"
                                     data-toggle="dropdown" aria-expanded="true">
@@ -17,8 +17,8 @@
                                 aria-labelledby="dropdownMenu1">
                                 {% if request.user.is_staff %}
                                     <li role="presentation">
-                                        <a href="{% url 'add_product_type' %}">
-                                            <i class="fa fa-plus"></i> Add Product Type
+                                        <a href="{% url 'add_customer' %}">
+                                            <i class="fa fa-plus"></i> Add Customer
                                         </a>
                                     </li>
                                 {% endif %}
@@ -31,18 +31,18 @@
                     {% include "dojo/filter_snippet.html" with form=ptl.form %}
                 </div>
             </div>
-            {% if pts %}
+            {% if cs %}
 
                 <div class="clearfix">
-                    {% include "dojo/paging_snippet.html" with page=pts page_size=True %}
+                    {% include "dojo/paging_snippet.html" with page=cs page_size=True %}
                 </div>
 
                 <div class="panel panel-default table-responsive">
-                    <table id="product_types"
+                    <table id="customers"
                            class="tablesorter-bootstrap table table-bordered table-condensed table-striped">
                         <thead>
                         <tr>
-                            <th>{% dojo_sort request 'Product Type' 'name' 'asc' %}</th>
+                            <th>{% dojo_sort request 'Customer' 'name' 'asc' %}</th>
                             <th> # of Products</th>
                             <th> # of active findings</th>
                             {% if user.is_staff %}
@@ -50,13 +50,13 @@
                         </tr>
                         </thead>
                         <tbody>
-                        {% for pt in pts %}
+                        {% for c in cs %}
                             <tr>
-                                <td><a href="{% url 'product_type_metrics' pt.id %}"> {{ pt.name }} </a></td>
-                                <td><a href="{% url 'product' %}?prod_type={{ pt.id }}">{{ pt.products_count }}</a></td>
+                                <td><a href="{% url 'customer_metrics' c.id %}"> {{ c.name }} </a></td>
+                                <td><a href="{% url 'product' %}?customer={{ c.id }}">{{ c.products_count }}</a></td>
                                 <td>
-                                    <a href="{% url 'open_findings' %}?test__engagement__product__prod_type={{ pt.id }}">
-                                        {{ pt.findings_count }}
+                                    <a href="{% url 'open_findings' %}?test__engagement__product__customer={{ c.id }}">
+                                        {{ c.findings_count }}
                                     </a>
                                 </td>
                                 {% if user.is_staff %}
@@ -64,15 +64,15 @@
                                         <div class="centered">
                                             <div class="btn-group" role="group">
                                                 <a class="btn btn-sm btn-success"
-                                                   href="{% url 'add_product_to_product_type' pt.id %}">
+                                                   href="{% url 'add_product_to_customer' c.id %}">
                                                     <i class="fa fa-plus"></i> Add Product
                                                 </a>
                                                 <a class="btn btn-sm btn-warning"
-                                                   href="{% url 'edit_product_type' pt.id %}">
-                                                    <i class="fa fa-pencil"></i> Edit Product Type
+                                                   href="{% url 'edit_customer' c.id %}">
+                                                    <i class="fa fa-pencil"></i> Edit Customer
                                                 </a>
                                                 <a class="btn btn-sm btn-primary"
-                                                   href="{% url 'product_type_report' pt.id %}">
+                                                   href="{% url 'customer_report' c.id %}">
                                                     <i class="fa fa-file-text-o"></i> Report
                                                 </a>
                                             </div>
@@ -86,10 +86,10 @@
                     </table>
                 </div>
                 <div class="clearfix">
-                    {% include "dojo/paging_snippet.html" with page=pts page_size=True %}
+                    {% include "dojo/paging_snippet.html" with page=cs page_size=True %}
                 </div>
             {% else %}
-                <p class="text-center">No product types found.</p>
+                <p class="text-center">No customers found.</p>
             {% endif %}
         </div>
     </div>

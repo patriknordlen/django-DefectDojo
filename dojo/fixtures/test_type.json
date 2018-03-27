@@ -82,5 +82,13 @@
     },
     "model": "dojo.test_type",
     "pk": 12
-  }
+  },
+  {
+    "fields": {
+      "name": "Manual findings"
+    },
+    "model": "dojo.test_type",
+    "pk": 13
+  },
+
 ]

@@ -17,7 +17,7 @@ from dojo.finding.urls import urlpatterns as finding_urls
 from dojo.home.urls import urlpatterns as home_urls
 from dojo.metrics.urls import urlpatterns as metrics_urls
 from dojo.product.urls import urlpatterns as prod_urls
-from dojo.product_type.urls import urlpatterns as pt_urls
+from dojo.customer.urls import urlpatterns as cust_urls
 from dojo.reports.urls import urlpatterns as reports_urls
 from dojo.scan.urls import urlpatterns as scan_urls
 from dojo.search.urls import urlpatterns as search_urls
@@ -31,6 +31,7 @@ from dojo.tool_product.urls import urlpatterns as tool_product_urls
 from dojo.cred.urls import urlpatterns as cred_urls
 from dojo.system_settings.urls import urlpatterns as system_settings_urls
 from dojo.notifications.urls import urlpatterns as notifications_urls
+from markdownx import urls as markdownx
 import sys
 
 admin.autodiscover()
@@ -54,6 +55,7 @@ v1_api.register(ReImportScanResource())
 
 
 ur = []
+ur += cust_urls
 ur += dev_env_urls
 ur += endpoint_urls
 ur += eng_urls
@@ -61,7 +63,6 @@ ur += finding_urls
 ur += home_urls
 ur += metrics_urls
 ur += prod_urls
-ur += pt_urls
 ur += reports_urls
 ur += scan_urls
 ur += search_urls
@@ -101,6 +102,7 @@ urlpatterns = [
     url(r'^%shistory/(?P<cid>\d+)/(?P<oid>\d+)$' % get_system_setting('url_prefix'), views.action_history,
         name='action_history'),
     url(r'^%s' % get_system_setting('url_prefix'), include(ur)),
+    url(r'^markdownx/', include('markdownx.urls')),
 ]
 
 if settings.DEBUG:

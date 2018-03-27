@@ -1,6 +1,7 @@
 import base64
 import os
 import re
+import operator
 from datetime import datetime
 from uuid import uuid4
 
@@ -21,6 +22,8 @@ from django.utils import timezone
 from pytz import all_timezones
 from tagging.registry import register as tag_register
 from multiselectfield import MultiSelectField
+from math import ceil
+from markdownx.models import MarkdownxField
 
 class System_Settings(models.Model):
     enable_deduplication = models.BooleanField(default=False, 
@@ -49,6 +52,7 @@ class System_Settings(models.Model):
                                                     'in most places, whereas if turned off Critical, High, Medium, etc will be displayed.')
     url_prefix = models.CharField(max_length=300, default='', blank=True)
     team_name = models.CharField(max_length=100, default='', blank=True)
+    team_logo = models.ImageField(upload_to='team_logo', blank=True)
     time_zone = models.CharField(max_length=50,
                                  choices=[(tz,tz) for tz in all_timezones],
                                  default='UTC',blank=False)
@@ -69,9 +73,8 @@ class Dojo_User(User):
         """
         Returns the first_name plus the last_name, with a space in between.
         """
-        full_name = '%s %s (%s)' % (self.first_name,
-                                    self.last_name,
-                                    self.username)
+        full_name = '%s %s' % (self.first_name,
+                                    self.last_name)
         return full_name.strip()
 
     def __unicode__(self):
@@ -96,33 +99,26 @@ class UserContactInfo(models.Model):
     hipchat_username = models.CharField(blank=True, null=True, max_length=150)
 
 
-class Contact(models.Model):
-    name = models.CharField(max_length=100)
-    email = models.EmailField()
-    team = models.CharField(max_length=100)
-    is_admin = models.BooleanField(default=False)
-    is_globally_read_only = models.BooleanField(default=False)
-    updated = models.DateTimeField(editable=False)
 
 
-class Product_Type(models.Model):
+class Customer(models.Model):
     name = models.CharField(max_length=300)
     critical_product = models.BooleanField(default=False)
     key_product = models.BooleanField(default=False)
 
     def critical_present(self):
-        c_findings = Finding.objects.filter(test__engagement__product__prod_type=self, severity='Critical')
+        c_findings = Finding.objects.filter(test__engagement__product__customer=self, severity='Critical')
         if c_findings.count() > 0:
             return True
 
     def high_present(self):
-        c_findings = Finding.objects.filter(test__engagement__product__prod_type=self, severity='High')
+        c_findings = Finding.objects.filter(test__engagement__product__customer=self, severity='High')
         if c_findings.count() > 0:
             return True
 
     def calc_health(self):
-        h_findings = Finding.objects.filter(test__engagement__product__prod_type=self, severity='High')
-        c_findings = Finding.objects.filter(test__engagement__product__prod_type=self, severity='Critical')
+        h_findings = Finding.objects.filter(test__engagement__product__customer=self, severity='High')
+        c_findings = Finding.objects.filter(test__engagement__product__customer=self, severity='Critical')
         health = 100
         if c_findings.count() > 0:
             health = 40
@@ -142,22 +138,32 @@ class Product_Type(models.Model):
                                       false_p=False,
                                       duplicate=False,
                                       out_of_scope=False,
-                                      test__engagement__product__prod_type=self).filter(Q(severity="Critical") |
+                                      test__engagement__product__customer=self).filter(Q(severity="Critical") |
                                                                                         Q(severity="High") |
                                                                                         Q(severity="Medium") |
                                                                                         Q(severity="Low")).count()
 
     def products_count(self):
-        return Product.objects.filter(prod_type=self).count()
+        return Product.objects.filter(customer=self).count()
 
     def __unicode__(self):
         return self.name
 
     def get_breadcrumbs(self):
         bc = [{'title': self.__unicode__(),
-               'url': reverse('edit_product_type', args=(self.id,))}]
+               'url': reverse('edit_customer', args=(self.id,))}]
         return bc
 
+
+class Contact(models.Model):
+    name = models.CharField(max_length=100)
+    role = models.CharField(max_length=100, null=True)
+    phone = models.CharField(max_length=100, null=True)
+    email = models.EmailField()
+    customer = models.ForeignKey(Customer)
+    # is_admin = models.BooleanField(default=False)
+    # is_globally_read_only = models.BooleanField(default=False)
+    # updated = models.DateTimeField(editable=False)
 
 class Product_Line(models.Model):
     name = models.CharField(max_length=300)
@@ -185,7 +191,7 @@ class Test_Type(models.Model):
 
 class Product(models.Model):
     name = models.CharField(max_length=300)
-    description = models.CharField(max_length=4000)
+    description = models.CharField(max_length=4000, blank=True, null=True)
     '''
         The following three fields are deprecated and no longer in use.
         They remain in model for backwards compatibility and will be removed
@@ -203,11 +209,11 @@ class Product(models.Model):
     team_manager = models.ForeignKey(Dojo_User, null=True, blank=True, related_name='team_manager')
 
     created = models.DateTimeField(editable=False, null=True, blank=True)
-    prod_type = models.ForeignKey(Product_Type, related_name='prod_type',
+    customer = models.ForeignKey(Customer, related_name='customer',
                                   null=True, blank=True)
     updated = models.DateTimeField(editable=False, null=True, blank=True)
     tid = models.IntegerField(default=0, editable=False)
-    authorized_users = models.ManyToManyField(User, blank=True)
+    authorized_users = models.ManyToManyField(Dojo_User, blank=True)
 
     def __unicode__(self):
         return self.name
@@ -227,7 +233,7 @@ class Product(models.Model):
     @property
     def endpoint_count(self):
         endpoints = Endpoint.objects.filter(finding__test__engagement__product=self,
-                                            finding__active=True,
+                                            # finding__active=True,
                                             finding__verified=True,
                                             finding__mitigated__isnull=True)
 
@@ -360,6 +366,15 @@ class IPScan(models.Model):
     services = models.CharField(max_length=800, null=True)
     scan = models.ForeignKey(Scan, default=1, editable=False)
 
+class Development_Environment(models.Model):
+    name = models.CharField(max_length=200)
+
+    def __unicode__(self):
+        return self.name
+
+    def get_breadcrumbs(self):
+        return [{"title": self.__unicode__(), "url": reverse("edit_dev_env", args=(self.id,))}]
+
 
 class Engagement_Type(models.Model):
     name = models.CharField(max_length=200)
@@ -373,34 +388,31 @@ class Engagement(models.Model):
     first_contacted = models.DateField(null=True, blank=True)
     target_start = models.DateField(null=False, blank=False)
     target_end = models.DateField(null=False, blank=False)
-    lead = models.ForeignKey(User, editable=True, null=True)
-    requester = models.ForeignKey(Contact, null=True, blank=True)
-    reason = models.CharField(max_length=2000, null=True, blank=True)
-    report_type = models.ForeignKey(Report_Type, null=True, blank=True)
+    targets = models.TextField(null=True, blank=True)
+    executive_summary = MarkdownxField(null=True, blank=True)
+    technical_summary = MarkdownxField(null=True, blank=True)
+    analysts = models.ManyToManyField(Dojo_User, editable=True)
+    hours = models.IntegerField(null=False)
+    environment = models.ForeignKey(Development_Environment, null=True, blank=True)
+    # report_type = models.ForeignKey(Report_Type, null=True, blank=True)
     product = models.ForeignKey(Product)
     updated = models.DateTimeField(editable=False, null=True, blank=True)
     active = models.BooleanField(default=True, editable=False)
-    test_strategy = models.URLField(editable=True, blank=True, null=True)
-    threat_model = models.BooleanField(default=True)
-    api_test = models.BooleanField(default=True)
-    pen_test = models.BooleanField(default=True)
-    check_list = models.BooleanField(default=True)
     status = models.CharField(editable=True, max_length=2000, default='',
                               null=True,
-                              choices=(('In Progress', 'In Progress'),
+                              choices=(('Preliminary','Preliminary'),
+                                       ('Planned', 'Planned'),
+                                       ('In Progress', 'In Progress'),
                                        ('On Hold', 'On Hold'),
                                        ('Completed', 'Completed')))
-    progress = models.CharField(max_length=100,
-                                default='threat_model', editable=False)
-    tmodel_path = models.CharField(max_length=1000, default='none',
-                                   editable=False, blank=True, null=True)
-    risk_path = models.CharField(max_length=1000, default='none',
-                                 editable=False, blank=True, null=True)
-    risk_acceptance = models.ManyToManyField("Risk_Acceptance",
-                                             default=None,
-                                             editable=False,
-                                             blank=True)
     done_testing = models.BooleanField(default=False, editable=False)
+
+    @property
+    def highest_severity_finding(self):
+        for severity in ['Critical','High','Medium','Low','Info']:
+            findings = Finding.objects.filter(test__engagement=self,severity=severity)
+            if findings:
+                return findings[0]
 
     class Meta:
         ordering = ['-target_start']
@@ -431,7 +443,7 @@ class Endpoint(models.Model):
                                       "'127.0.0.1', '127.0.0.1:8080', 'localhost', 'yourdomain.com'.")
     fqdn = models.CharField(null=True, blank=True, max_length=500)
     port = models.IntegerField(null=True, blank=True, help_text="The network port associated with the endpoint.")
-    path = models.CharField(null=True, blank=True, max_length=500,
+    path = models.CharField(null=True, blank=True, max_length=2000,
                             help_text="The location of the resource, it should start with a '/'. For example"
                                       "/endpoint/420/edit")
     query = models.CharField(null=True, blank=True, max_length=5000,
@@ -486,7 +498,6 @@ class Endpoint(models.Model):
                                             product=self.product).distinct()
 
         findings = Finding.objects.filter(endpoints__in=endpoints,
-                                          active=True,
                                           verified=True,
                                           out_of_scope=False).distinct()
 
@@ -535,34 +546,14 @@ class Notes(models.Model):
         return self.entry
 
 
-class Development_Environment(models.Model):
-    name = models.CharField(max_length=200)
-
-    def __unicode__(self):
-        return self.name
-
-    def get_breadcrumbs(self):
-        return [{"title": self.__unicode__(), "url": reverse("edit_dev_env", args=(self.id,))}]
-
-
 class Test(models.Model):
     engagement = models.ForeignKey(Engagement, editable=False)
-    lead = models.ForeignKey(User, editable=True, null=True)
     test_type = models.ForeignKey(Test_Type)
-    target_start = models.DateTimeField()
-    target_end = models.DateTimeField()
-    estimated_time = models.TimeField(null=True, blank=True, editable=False)
-    actual_time = models.TimeField(null=True, blank=True, editable=False, )
-    percent_complete = models.IntegerField(null=True, blank=True,
-                                           editable=True)
     notes = models.ManyToManyField(Notes, blank=True,
                                    editable=False)
-    environment = models.ForeignKey(Development_Environment, null=True,
-                                    blank=False)
 
     def __unicode__(self):
-        return "%s (%s)" % (self.test_type,
-                            self.target_start.strftime("%b %d, %Y"))
+        return '%s' % self.test_type
 
     def get_breadcrumbs(self):
         bc = self.engagement.get_breadcrumbs()
@@ -581,26 +572,154 @@ class VA(models.Model):
     status = models.BooleanField(default=False, editable=False)
     start = models.CharField(max_length=100)
 
+class CVSSv2(models.Model):
+    AV_CHOICES = (('L','Local'),('AN','Adjacent Network'),('N','Network'))
+    AC_CHOICES = (('L','Low'),('M','Medium'),('H','High'))
+    AU_CHOICES = (('M','Multiple'),('S','Single'),('N','None'))
+    C_CHOICES = (('N','None'),('P','Partial'),('C','Complete'))
+    I_CHOICES = (('N','None'),('P','Partial'),('C','Complete'))
+    A_CHOICES = (('N','None'),('P','Partial'),('C','Complete'))
+
+    av = models.CharField(null=True, max_length=2,
+                          choices=AV_CHOICES)
+    ac = models.CharField(null=True, max_length=1,
+                          choices=AC_CHOICES)
+    au = models.CharField(null=True, max_length=1,
+                          choices=AU_CHOICES)
+    c = models.CharField(null=True, max_length=1,
+                          choices=C_CHOICES)
+    i = models.CharField(null=True, max_length=1,
+                          choices=I_CHOICES)
+    a = models.CharField(null=True, max_length=1,
+                          choices=A_CHOICES)
+
+    def fromvector(self, vector):
+        for k,v in [i.split(':') for i in vector.split('#')[1].split('/')]:
+            setattr(self, k.lower(), v)
+
+    @property
+    def vector(self):
+        if not self.c:
+            return 'N/A'
+        else:
+            return 'CVSS2#' + '/'.join(["%s:%s" % (f.name.upper(), getattr(self, f.name)) for f in self._meta.fields if f != self._meta.auto_field])
+    
+    @property
+    def score(self):
+        if self.c:
+            weights = {'AV':{'N':1,'AN':0.646,'L':0.395},
+                    'AC':{'L':0.71,'M':0.61,'H':0.35},
+                    'AU':{'N':0.704,'S':0.56,'M':0.45},
+                    'C':{'C':0.66,'P':0.275,'N':0},
+                    'I':{'C':0.66,'P':0.275,'N':0},
+                    'A':{'C':0.66,'P':0.275,'N':0}}
+
+            impact_score = 10.41 * (1 - (1-weights['C'][self.c])*(1-weights['I'][self.i])*(1-weights['A'][self.a]))
+
+            if impact_score == 0:
+                return 0
+
+            exploitability_score = 20 * weights['AV'][self.av] * weights['AC'][self.ac] * weights['AU'][self.au]
+
+            score = ceil(1.176 * (0.6 * impact_score + 0.4 * exploitability_score - 1.5) * 10.0) / 10.0
+        else:
+            score = 0
+
+        return round(score, 1)
+
+class CVSSv3(models.Model):
+    AV_CHOICES = (('N','Network'),('AN','Adjacent Network'),('L','Local'),('P','Physical'))
+    AC_CHOICES = (('L','Low'),('H','High'))
+    PR_CHOICES = (('N','None'),('L','Low'),('H','High'))
+    UI_CHOICES = (('N','None'),('R','Required'))
+    S_CHOICES = (('U','Unchanged'),('C','Changed'))
+    C_CHOICES = (('N','None'),('L','Low'),('H','High'))
+    I_CHOICES = (('N','None'),('L','Low'),('H','High'))
+    A_CHOICES = (('N','None'),('L','Low'),('H','High'))
+
+    av = models.CharField(null=True, max_length=2,
+                          choices=AV_CHOICES)
+    ac = models.CharField(null=True, max_length=1,
+                          choices=AC_CHOICES)
+    pr = models.CharField(null=True, max_length=1,
+                          choices=PR_CHOICES)
+    ui = models.CharField(null=True, max_length=1,
+                          choices=UI_CHOICES)
+    s = models.CharField(null=True, max_length=1,
+                          choices=S_CHOICES)
+    c = models.CharField(null=True, max_length=1,
+                          choices=C_CHOICES)
+    i = models.CharField(null=True, max_length=1,
+                          choices=I_CHOICES)
+    a = models.CharField(null=True, max_length=1,
+                          choices=A_CHOICES)
+
+
+    @property
+    def vector(self):
+        if self.c:
+            return 'CVSS:3.0/' + '/'.join(["%s:%s" % (f.name.upper(), getattr(self, f.name)) for f in self._meta.fields if f != self._meta.auto_field])
+        else:
+            return 'N/A'
+            
+    
+    @property
+    def score(self):
+        if self.c:
+            weights = {'AV':{'N':0.85,'AN':0.62,'L':0.55,'P':0.2},
+                    'AC':{'L':0.77,'H':0.44},
+                    'PR':{'N':0.85,'L':0.62,'H':0.27}, # TODO - these change if scope is changed
+                    'UI':{'N':0.85,'R':0.62},
+                    'C':{'H':0.56,'L':0.22,'N':0},
+                    'I':{'H':0.56,'L':0.22,'N':0},
+                    'A':{'H':0.56,'L':0.22,'N':0}}
+
+            isc_base = 1 - ((1-weights['C'][self.c])*(1-weights['I'][self.i])*(1-weights['A'][self.a]))
+
+            if self.s == 'U':
+                impact_score = 6.42 * isc_base
+            else:
+                impact_score = 7.52 * (isc_base - 0.029) - 3.25 * pow(isc_base - 0.02, 15)
+
+            if impact_score <= 0:
+                return 0
+
+            exploitability_score = 8.22 * weights['AV'][self.av] * weights['AC'][self.ac] * weights['PR'][self.pr] * weights['UI'][self.ui]
+
+            if self.s == 'U':
+                score = ceil(min([(impact_score + exploitability_score),10])*10.0) / 10.0
+            else:
+                score = ceil(min([1.08 * (impact_score + exploitability_score),10])*10.0) / 10.0
+        else:
+            score = 0
+
+        return round(score, 1)
+
 
 class Finding(models.Model):
     title = models.TextField(max_length=1000)
     date = models.DateField(default=get_current_date)
     cwe = models.IntegerField(default=0, null=True, blank=True)
     url = models.TextField(null=True, blank=True, editable=False)
+    score = models.DecimalField(max_digits=3, decimal_places=1, null=True)
     severity = models.CharField(max_length=200)
-    description = models.TextField()
-    mitigation = models.TextField()
-    impact = models.TextField()
-    endpoints = models.ManyToManyField(Endpoint, blank=True, )
+    description = MarkdownxField(null=True, blank=True)
+    mitigation = MarkdownxField(null=True, blank=True)
+    impact = MarkdownxField(null=True, blank=True)
+    formatting = models.CharField(choices=(('Markdown','Markdown'),('Raw','Raw')), default='Markdown', max_length=20)
+    endpoints = models.ManyToManyField(Endpoint, blank=True)
     unsaved_endpoints = []
     unsaved_request = None
     unsaved_response = None
     unsaved_tags = None
-    references = models.TextField(null=True, blank=True, db_column="refs")
+    references = MarkdownxField(null=True, blank=True, db_column="refs")
     test = models.ForeignKey(Test, editable=False)
+
+    cvss2 = models.ForeignKey(CVSSv2, null=True)
+    cvss3 = models.ForeignKey(CVSSv3, null=True)
+
     # TODO: Will be deprecated soon
     is_template = models.BooleanField(default=False)
-    active = models.BooleanField(default=True)
     verified = models.BooleanField(default=True)
     false_p = models.BooleanField(default=False, verbose_name="False Positive")
     duplicate = models.BooleanField(default=False)
@@ -615,20 +734,50 @@ class Finding(models.Model):
 
     thread_id = models.IntegerField(default=0, editable=False)
     mitigated = models.DateTimeField(editable=False, null=True, blank=True)
-    mitigated_by = models.ForeignKey(User, null=True, editable=False, related_name="mitigated_by")
-    reporter = models.ForeignKey(User, editable=False, related_name='reporter')
+    mitigated_by = models.ForeignKey(Dojo_User, null=True, editable=False, related_name="mitigated_by")
+    reporter = models.ForeignKey(Dojo_User, editable=False, related_name='reporter')
     notes = models.ManyToManyField(Notes, blank=True,
                                    editable=False)
     numerical_severity = models.CharField(max_length=4)
     last_reviewed = models.DateTimeField(null=True, editable=False)
-    last_reviewed_by = models.ForeignKey(User, null=True, editable=False, related_name='last_reviewed_by')
+    last_reviewed_by = models.ForeignKey(Dojo_User, null=True, editable=False, related_name='last_reviewed_by')
     images = models.ManyToManyField('FindingImage', blank=True)
 
     SEVERITIES = {'Info': 4, 'Low': 3, 'Medium': 2,
                   'High': 1, 'Critical': 0}
 
+    sev_cvss_mapping = {'Info': 0, 'Low': 0.1, 'Medium': 4,
+                        'High': 7, 'Critical': 9}
+
     class Meta:
         ordering = ('numerical_severity', '-date', 'title')
+
+
+    @property
+    def cvss_vector(self):
+        if self.cvss3 is not None:
+            return self.cvss3.vector
+        elif self.cvss2 is not None:
+            return self.cvss2.vector
+        else:
+            return 'N/A'
+    
+    @property
+    def new_sev(self):
+        if self.cvss3 is not None:
+            return self.cvss3.score
+        elif self.cvss2 is not None:
+            return self.cvss2.score
+        elif self.severity not in [None, '']:
+            return self.sev_cvss_mapping[self.severity]
+        else:
+            return 0
+
+    @property
+    def new_sev_level(self):
+        for level,score in sorted(self.sev_cvss_mapping.items(), key=operator.itemgetter(1), reverse=True):
+            if self.new_sev >= score:
+                return level
 
     @staticmethod
     def get_numerical_severity(severity):
@@ -648,10 +797,6 @@ class Finding(models.Model):
 
     def status(self):
         status = []
-        if self.active:
-            status += ['Active']
-        else:
-            status += ['Inactive']
         if self.verified:
             status += ['Verified']
         if self.mitigated:
@@ -717,7 +862,7 @@ class Finding(models.Model):
 
     def clean(self):
         no_check = ["test", "reporter"]
-        bigfields = ["description", "mitigation", "references", "impact", "url"]
+        bigfields = ["description", "mitigation", "impact", "url"]
         for field_obj in self._meta.fields:
             field = field_obj.name
             if field not in no_check:
@@ -744,6 +889,7 @@ class Finding(models.Model):
                 'url': reverse('view_finding', args=(self.id,))}]
         return bc
 
+
         # def get_request(self):
         #     if self.burprawrequestresponse_set.count() > 0:
         #         reqres = BurpRawRequestResponse.objects.get(finding=self)
@@ -766,7 +912,9 @@ class Stub_Finding(models.Model):
     severity = models.CharField(max_length=200, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     test = models.ForeignKey(Test, editable=False)
-    reporter = models.ForeignKey(User, editable=False)
+    reporter = models.ForeignKey(Dojo_User, editable=False)
+    cvss3 = models.ForeignKey(CVSSv3, null=True)
+
 
     class Meta:
         ordering = ('-date', 'title')
@@ -784,6 +932,7 @@ class Stub_Finding(models.Model):
 class Finding_Template(models.Model):
     title = models.TextField(max_length=1000)
     cwe = models.IntegerField(default=None, null=True, blank=True)
+    cvss3 = models.ForeignKey(CVSSv3, null=True)
     severity = models.CharField(max_length=200, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     mitigation = models.TextField(null=True, blank=True)
@@ -794,8 +943,24 @@ class Finding_Template(models.Model):
     SEVERITIES = {'Info': 4, 'Low': 3, 'Medium': 2,
                   'High': 1, 'Critical': 0}
 
+    sev_cvss_mapping = {'Info': 0, 'Low': 3, 'Medium': 6,
+                        'High': 9, 'Critical': 10}
+
     class Meta:
         ordering = ['-cwe']
+
+    @property
+    def new_sev(self):
+        if self.cvss3 is not None:
+            return self.cvss3.score
+        else:
+            return 0
+
+    @property
+    def new_sev_level(self):
+        for level,score in sorted(self.sev_cvss_mapping.items(), key=operator.itemgetter(1), reverse=True):
+            if self.new_sev >= score:
+                return level
 
     def __unicode__(self):
         return self.title
@@ -902,6 +1067,7 @@ class Report(models.Model):
     name = models.CharField(max_length=200)
     type = models.CharField(max_length=100, default='Finding')
     format = models.CharField(max_length=15, default='AsciiDoc')
+    template = models.CharField(max_length=200, default=settings.DOJO_ROOT+'/templates/dojo/engagement_report.docx')
     requester = models.ForeignKey(User)
     task_id = models.CharField(max_length=50)
     file = models.FileField(upload_to='reports/%Y/%m/%d', verbose_name='Report File', null=True)
@@ -915,6 +1081,9 @@ class Report(models.Model):
 
     def get_url(self):
         return reverse('download_report', args=(self.id,))
+
+    def templatefile(self):
+        return os.path.basename(self.template)
 
     class Meta:
         ordering = ['-datetime']
@@ -1096,8 +1265,9 @@ class Alerts(models.Model):
     url =  models.URLField(max_length=2000, null=True)
     source = models.CharField(max_length=100, default='Generic')
     icon = models.CharField(max_length=25, default='icon-user-check')
-    user_id = models.ForeignKey(User, null=True, editable=False)
+    user = models.ForeignKey(User, null=True, editable=False)
     created = models.DateTimeField(null=False, editable=False, default=now)
+    read = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['-created']
@@ -1175,7 +1345,7 @@ admin.site.register(Check_List)
 admin.site.register(Test_Type)
 admin.site.register(Endpoint)
 admin.site.register(Product)
-admin.site.register(Product_Type)
+admin.site.register(Customer)
 admin.site.register(Dojo_User)
 admin.site.register(UserContactInfo)
 admin.site.register(Notes)

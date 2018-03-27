@@ -6,24 +6,24 @@ understand the terminology we use below, so we recommend taking a look at that f
 
 .. _create-new-product-type:
 
-Create a new Product Type
+Create a new Customer
 -------------------------
 
-The first step to using DefectDojo is to create a Product Type. Some examples might be "Mobile Apps" or
+The first step to using DefectDojo is to create a Customer. Some examples might be "Mobile Apps" or
 "New York Office." The idea is to make it easy to divide your Products into logical categories, based on your
 organizational structure, or just to divide internal and external applications.
 
 .. image:: /_static/getting_started_1.png
 
-Select "View Product Types" from the "Products" dropdown in the main menu.
+Select "View Customers" from the "Products" dropdown in the main menu.
 
 .. image:: /_static/getting_started_2.png
 
-Click the "New Product Type" button at the top.
+Click the "New Customer" button at the top.
 
 .. image:: /_static/getting_started_3.png
 
-Enter a name for your new Product Type.
+Enter a name for your new Customer.
 
 .. _Create a new Test Type:
 
@@ -179,12 +179,12 @@ team's work in public without showing specific details.
 
 .. image:: /_static/getting_started_20.png
 
-Select "All" or a Product Type from the "Metrics" drop-down in the main menu.
+Select "All" or a Customer from the "Metrics" drop-down in the main menu.
 
 .. image:: /_static/getting_started_21.png
 
 Here you can see graphs of various metrics, with the ability to filter your
-results by time, Product Type, and severity.
+results by time, Customer, and severity.
 
 .. image:: /_static/getting_started_22.png
 

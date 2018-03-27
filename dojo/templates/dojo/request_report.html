@@ -7,8 +7,8 @@
                 <div class="panel-heading tight">
                     <h3 class="has-filters">
                         Generate
-                        {% if product_type %}
-                            Product Type
+                        {% if customer %}
+                            Customer
                         {% elif product %}
                             Product
                         {% elif engagement %}
@@ -53,7 +53,7 @@
             {% if findings %}
                 <div class="well">
                     <p>
-                        The {{ findings|length|apnumber }} finding{{ findings|length|pluralize }} listed below will be
+                        The {{ findings.qs|length|apnumber }} finding{{ findings.qs|length|pluralize }} listed below will be
                         included in the report. Use filters above to fine
                         tune the findings to be used.
                     </p>
@@ -78,14 +78,12 @@
                         {% for finding in paged_findings %}
                             <tr>
                                 <td><a title="{{ finding.title }}"
-                                       href="{% url 'view_finding' finding.id %}">{{ finding.title|truncatechars:50 }}</a>
+                                       href="{% url 'view_finding' finding.id %}">{{ finding.title }}</a>
                                 </td>
                                 <td class="nowrap">{{ finding.date }}</td>
                                 <td class="">{{ finding.status }}</td>
                                 <td class="">{{ finding.mitigated }}</td>
-                                <td>{% if finding.severity == "Critical" or finding.severity == "High" %}
-                                    <p class="text-error">
-                                {% else %}<p>{% endif %}{{ finding.severity }}</p></td>
+                                <td><span class="label severity severity-{{ finding.new_sev_level }}">{{ finding.new_sev }}</span></td>
                                 <td>{{ finding.test.engagement.product }}</td>
                             </tr>
                         {% endfor %}

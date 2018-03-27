@@ -51,6 +51,7 @@
         {% block add_styles %}
         {% endblock %}
     </style>
+    {{ form.media }}
 </head>
 <body class="{% dojo_body_class %}">
 
@@ -66,7 +67,7 @@
                     <span class="icon-bar"></span>
                 </button>
                 <a class="navbar-brand" href="{% url 'home' %}">
-                    <img src="{% static "dojo/img/logo.png" %}" alt="DefectDojo Logo" width="240"/>
+                    <img src="{% if "team_logo"|get_system_setting %}/media/{{ "team_logo"|get_system_setting }}{% else %}{% static "dojo/img/logo.png" %}{% endif %}" alt="Team Logo" height="38"/>
                 </a>
 
             </div>
@@ -109,7 +110,7 @@
                         {% block settings-dropdown-items %}
                             {% if request.user.is_authenticated %}
                                 <li><a href="{% url 'view_profile' %}"><i
-                                        class="fa fa-user fa-fw"></i> {{ request.user.username }}</a>
+                                        class="fa fa-user fa-fw"></i> {{ request.user.get_full_name }}</a>
                                 </li>
                                 <li><a href="{% url 'api_key' %}"><i class="fa fa-fw fa-key"></i> API Key</a></li>
                             {% endif %}
@@ -137,99 +138,24 @@
                                 </li>
                             {% endif %}
                             <li>
-                                {% if request.user.is_staff %}
-                                    <a href="#"><i class="fa fa-list fa-fw"></i> <span>Products</span>
-                                        <span class="glyphicon arrow"></span></a>
-                                {% else %}
-                                    <a href="{% url 'product' %}" title="Product Listing"><i class="fa fa-list fa-fw"></i> <span>Products</span></a>
-                                {% endif %}
-                                {% if request.user.is_staff %}
-                                    <ul class="nav nav-second-level">
-                                        <li>
-                                            <a href="{% url 'product' %}"> All Products</a>
-                                        </li>
-                                        <li>
-                                            <a href="{% url 'product_type' %}">View Product Types</a>
-                                        </li>
-
-                                    </ul>
-                                {% endif %}
-                                <!-- /.nav-second-level -->
+                                <a href="{% url 'customer' %}" title="Customer List" id="customer-parent"><i class="fa fa-list fa-fw"></i> <span>Customers</span></a>
+                                <ul class="nav nav-second-level" id="customer-initials-container">
+                                    <li><div class="text-center"><i class="fa fa-spin fa-spinner"></i></div></li>
+                                </ul>
                             </li>
                             {% if request.user.is_staff %}
                                 <li>
-                                    <a href="#"><i class="fa fa-inbox fa-fw"></i> <span>Engagements</span><span
+                                    <a href="{% url 'templates' %}"><i class="fa fa-bug fa-fw"></i> <span>Finding Templates</span><span
                                             class="glyphicon arrow"></span></a>
-                                    <ul class="nav nav-second-level">
-                                        <li>
-                                            <a href="{% url 'engagement' %}">All Engagements</a>
-                                        </li>
-                                        <li>
-                                            <a href="{% url 'test_type' %}">Test Types</a>
-                                        </li>
-                                        <li>
-                                            <a href="{% url 'dev_env' %}">Development Environments</a>
-                                        </li>
-                                    </ul>
-                                    <!-- /.nav-second-level -->
-                                </li>
-                                <li>
-                                    <a href="#"><i class="fa fa-bug fa-fw"></i> <span>Findings</span><span
-                                            class="glyphicon arrow"></span></a>
-                                    <ul class="nav nav-second-level">
-                                        <li>
-                                            <a href="{% url 'open_findings' %}">Open Findings</a>
-                                        </li>
-                                        <li>
-                                            <a href="{% url 'accepted_findings' %}">Accepted Findings</a>
-                                        </li>
-                                        <li>
-                                            <a href="{% url 'closed_findings' %}">Closed Findings</a>
-                                        </li>
-                                        <li>
-                                            <a href="{% url 'templates' %}">Finding Templates</a>
-                                        </li>
-                                    </ul>
-                                    <!-- /.nav-second-level -->
-                                </li>
-                                <li>
-                                    <a href="#"><i class="fa fa-sitemap fa-fw"></i> <span>Endpoints</span><span
-                                            class="glyphicon arrow"></span></a>
-                                    <ul class="nav nav-second-level">
-                                        <li>
-                                            <a href="{% url 'endpoints' %}">All Endpoints</a>
-                                        </li>
-                                        <li>
-                                            <a href="{% url 'vulnerable_endpoints' %}">
-                                                Vulnerable Endpoints
-                                            </a>
-                                        </li>
-                                    </ul>
                                 </li>
                             {% endif %}
                             <li>
                                 <a href="{% url 'reports' %}"><i class="fa fa-file-text-o fa-fw"></i> <span>Reports</span><span
                                         class="glyphicon arrow"></span></a>
-                                <ul class="nav nav-second-level">
+                                <!-- <ul class="nav nav-second-level">
                                     <li><a href="{% url 'reports' %}"> All Reports </a></li>
                                     <li><a href="{% url 'report_builder' %}"> Report Builder </a></li>
-                                </ul>
-                                <!-- /.nav-second-level -->
-                            </li>
-                            <li>
-                                <a href="/metrics"><i class="fa fa-bar-chart fa-fw"></i> <span>Metrics</span><span
-                                        class="glyphicon arrow"></span></a>
-                                <ul class="nav nav-second-level">
-                                    <li><a href="{% url 'critical_product_metrics' %}"> Critical Product Metrics </a></li>
-                                    <li><a href="{% url 'metrics_product_type' %}"> Product Type Metrics </a></li>
-                                    <li><a href="{% url 'product_type_counts' %}"> Product Type Counts </a></li>
-                                    {% if user.is_staff %}
-                                        <li><a href="{% url 'simple_metrics' %}"> Simple Metrics </a></li>
-                                        <li><a href="{% url 'engineer_metrics' %}"> Engineer Metrics </a></li>
-                                        <li><a href="{% url 'research_metrics' %}"> Security Research Metrics </a></li>
-                                    {% endif %}
-                                    <li><a href="{% url 'metrics' %}?date=5&view=dashboard"> Metrics Dashboard </a></li>
-                                </ul>
+                                </ul> -->
                                 <!-- /.nav-second-level -->
                             </li>
                             {% if request.user.is_staff %}
@@ -244,14 +170,13 @@
                                 </li>
                             {% endif %}
                                 <li>
-                                    <a href="{% url 'jira' %}"><i class="fa fa-cog fa-fw"></i>
+                                    <a href="#"><i class="fa fa-cog fa-fw"></i>
                                         <span>Configuration</span></a>
                                     <ul class="nav nav-second-level">
                                         <li><a href="{% url 'notifications' %}">Notifications </a></li>
                                         {% if request.user.is_superuser%}
                                         <li><a href="{% url 'system_settings' %}">System Settings </a></li>
                                         {% endif %}
-                                        <li><a href="{% url 'cred' %}">Credential Manager </a></li>
                                         {% if "enable_jira"|get_system_setting %}
                                         <li><a href="{% url 'jira' %}">JIRA </a></li>
                                         {% endif %}
@@ -325,21 +250,10 @@
             <div class="row">
                 <div class="col-md-12 text-center text-">
                     <p>
-                        <a href="{% url 'home' %}"><img class="logo" src="{% static "dojo/img/chop.png" %}"
-                                                        alt="DefectDojo Chop" height="45"/></a><br/>
-                        {% dojo_version %}
+                        <img src="{% if "team_logo"|get_system_setting %}/media/{{ "team_logo"|get_system_setting }}{% else %}{% static "dojo/img/logo.png" %}{% endif %}" alt="Team Logo" height="38"/>
                     </p>
                     <p>
-                        Detailed DefectDojo documentation can be found at  <a
-                            href="{% dojo_docs_url %}">Read The Docs</a>.
-                    </p>
-                    <p>
-                        DefectDojo is licensed under the <a
-                            href="https://github.com/rackerlabs/django-DefectDojo/blob/master/LICENSE.md">Simplified BSD
-                        license</a>.
-                    </p>
-                    <p>
-                        &copy; {% now "Y" %} DefectDojo
+                        This reporting portal can (so far) be blamed on Patrik Nordlén but is heavily heavily based on / inspired by <a href="https://github.com/OWASP/django-DefectDojo/">DefectDojo</a>.
                     </p>
                 </div>
             </div>
@@ -371,11 +285,18 @@
 <script type="application/javascript">
     $(document).ready(function() {
         $('.has-popover').popover({'trigger':'hover'});
-        $('.dropdown-toggle').click(function() { get_alerts(); });
+        $('.dropdown-toggle').click(function() { get_alerts(); reset_alerts(); });
+        $('#customer-parent').mouseenter(function() { get_customer_initials(); });
 
         setInterval(function() {
             update_alertcount();
         }, 10000);
+
+        function reset_alerts() {
+            $.get("{% url 'clearalerts' %}", function(data) {
+                update_alertcount();
+            });
+        }
 
         function update_alertcount() {
             $.get("{% url 'alertcount' %}", function (data) {
@@ -383,6 +304,57 @@
                     $('#alert_count').text(data.count);
                     $('#alert_count').removeClass().addClass('badge badge-count badge-count' + data.count);
                 }
+            });
+        }
+
+        function get_products(cid) {
+            $.get("/customer/" + cid + "/json", function(data) {
+                $('#product-container-' + cid).empty();
+                $.each(data, function(i, elem) {
+                    $('#product-container-' + cid).append('<li><a href="/product/' + elem.pk + '">' + elem.fields.name + '</a><ul id="engagement-container-' + elem.pk + '" class="nav nav-second-level"></ul></li>');
+                    $('#product-container-' + cid).mouseenter(function() { get_engagements(elem.pk); })
+                });
+                $('#product-container-' + cid).append('<li><a href="/customer/' + cid + '/add_product"><i class="fa fa-fw fa-plus"></i> Add product</a></li>');
+            });
+        }
+
+        function get_engagements(pid) {
+        $.get("/product/" + pid + "/engagements/json", function(data) {
+                $('#engagement-container-' + pid).empty();
+                $.each(data, function(i, elem) {
+                    $('#engagement-container-' + pid).append('<li><a href="/engagement/' + elem.pk + '">' + elem.fields.name + '</a></li>');
+                });
+                $('#engagement-container-' + pid).append('<li><a href="/product/' + pid + '/new_engagement"><i class="fa fa-fw fa-plus"></i> Add engagement</a></li>');
+            });
+        }
+
+        function get_customers(char) {
+            $.get("{% url 'customers_json' %}", function(data) {
+                $('#customer-initial-' + char).empty();
+                $.each(data, function(i, elem) {
+                    if(elem.fields.name.startsWith(char)) {
+                        console.log(elem.fields.name);
+                        $('#customer-initial-' + char).append('<li id="customer-' + elem.pk + '"><a href="/customer/' + elem.pk + '">' + elem.fields.name + '</a><ul id="product-container-' + elem.pk + '" class="nav nav-second-level"></ul></li>');
+                        $('#customer-' + elem.pk).mouseenter(function() { get_products(elem.pk); })
+                    }
+                });
+                $('#customer-container').append('<li><a href="{% url "add_customer" %}"><i class="fa fa-fw fa-plus"></i> Add customer</a></li>');
+            });
+        }
+
+        function get_customer_initials() {
+            $.get("{% url 'customers_json' %}", function(data) {
+                $('#customer-initials-container').empty();
+                var initials = [];
+                $.each(data, function(i, elem) {
+                    initials.push(elem.fields.name.charAt(0));
+                });
+                $.each($.unique(initials.sort()), function(i, char) {
+                    $('#customer-initials-container').append('<li id="customers-' + char + '"><a>'+ char + '</a><ul id="customer-initial-' + char + '" class="nav nav-second-level"></ul></li>');
+                    $('#customers-' + char).mouseenter(function() { get_customers(char); });
+                    console.log(char);
+                });
+                $('#customer-initials-container').append('<li><a href="{% url "add_customer" %}"><i class="fa fa-fw fa-plus"></i> Add customer</a></li>');
             });
         }
 

@@ -27,8 +27,8 @@ from dojo.filters import OpenFindingFilter, \
     ClosedFingingSuperFilter, TemplateFindingFilter
 from dojo.forms import NoteForm, CloseFindingForm, FindingForm, PromoteFindingForm, FindingTemplateForm, \
     DeleteFindingTemplateForm, FindingImageFormSet, JIRAFindingForm, ReviewFindingForm, ClearFindingReviewForm, \
-    DefectFindingForm, StubFindingForm
-from dojo.models import Product_Type, Finding, Notes, \
+    DefectFindingForm, StubFindingForm, CVSSv3Form
+from dojo.models import Customer, Finding, Notes, \
     Risk_Acceptance, BurpRawRequestResponse, Stub_Finding, Endpoint, Finding_Template, FindingImage, \
     FindingImageAccessToken, JIRA_Issue, JIRA_PKey, JIRA_Conf, Dojo_User, Cred_User, Cred_Mapping, Test
 from dojo.utils import get_page_items, add_breadcrumb, FileIterWrapper, send_review_email, process_notifications, \
@@ -73,11 +73,11 @@ def open_findings(request):
     title_words = sorted(set(title_words))
     paged_findings = get_page_items(request, findings.qs, 25)
 
-    product_type = None
-    if 'test__engagement__product__prod_type' in request.GET:
-        p = request.GET.getlist('test__engagement__product__prod_type', [])
+    customer = None
+    if 'test__engagement__product__customer' in request.GET:
+        p = request.GET.getlist('test__engagement__product__customer', [])
         if len(p) == 1:
-            product_type = get_object_or_404(Product_Type, id=p[0])
+            customer = get_object_or_404(Customer, id=p[0])
 
     add_breadcrumb(title="Open findings", top_level=not len(request.GET), request=request)
 
@@ -142,7 +142,11 @@ def closed_findings(request):
 
 
 def view_finding(request, fid):
-    finding = get_object_or_404(Finding, id=fid)
+    if request.user.is_superuser:
+        finding = get_object_or_404(Finding, id=fid)
+    else:
+        finding = get_object_or_404(Finding, id=fid, test__engagement__product__authorized_users__in=[request.user])
+        
     cred_finding = Cred_Mapping.objects.filter(finding=finding.id).select_related('cred_id').order_by('cred_id')
     creds = Cred_Mapping.objects.filter(test=finding.test.id).select_related('cred_id').order_by('cred_id')
     cred_engagement = Cred_Mapping.objects.filter(engagement=finding.test.engagement.id).select_related('cred_id').order_by('cred_id')
@@ -347,6 +351,7 @@ def edit_finding(request, fid):
     finding = get_object_or_404(Finding, id=fid)
     old_status = finding.status()
     form = FindingForm(instance=finding)
+    cform = CVSSv3Form(instance=finding.cvss3)
     form.initial['tags'] = [tag.name for tag in finding.tags]
     form_error = False
     jform = None
@@ -362,18 +367,17 @@ def edit_finding(request, fid):
 
     if request.method == 'POST':
         form = FindingForm(request.POST, instance=finding)
+        cform = CVSSv3Form(request.POST, instance=finding.cvss3)
         if form.is_valid():
             new_finding = form.save(commit=False)
             new_finding.test = finding.test
+            new_finding.cvss3 = cform.save()
+            new_finding.score = new_finding.cvss3.score
             new_finding.numerical_severity = Finding.get_numerical_severity(
                 new_finding.severity)
-            if new_finding.false_p or new_finding.active is False:
+            if new_finding.false_p:
                 new_finding.mitigated = timezone.now()
                 new_finding.mitigated_by = request.user
-            if new_finding.active is True:
-                new_finding.false_p = False
-                new_finding.mitigated = None
-                new_finding.mitigated_by = None
 
             create_template = new_finding.is_template
             # always false now since this will be deprecated soon in favor of new Finding_Template model
@@ -413,6 +417,7 @@ def edit_finding(request, fid):
                 else:
                     template = Finding_Template(title=new_finding.title,
                                                 cwe=new_finding.cwe,
+                                                cvss3=new_finding.cvss3,
                                                 severity=new_finding.severity,
                                                 description=new_finding.description,
                                                 mitigation=new_finding.mitigation,
@@ -440,6 +445,7 @@ def edit_finding(request, fid):
     add_breadcrumb(parent=finding, title="Edit", top_level=False, request=request)
     return render(request, 'dojo/edit_findings.html',
                   {'form': form,
+                   'cform': cform,
                    'finding': finding,
                    'jform' : jform
                    })
@@ -660,6 +666,7 @@ def promote_to_finding(request, fid):
     else:
         jform = None
         
+    cform = CVSSv3Form(instance=finding.cvss3)
     form = PromoteFindingForm(initial={'title': finding.title,
                                        'date': finding.date,
                                        'severity': finding.severity,
@@ -668,14 +675,16 @@ def promote_to_finding(request, fid):
                                        'reporter': finding.reporter})
     if request.method == 'POST':
         form = PromoteFindingForm(request.POST)
+        cform = CVSSv3Form(request.POST, instance=finding.cvss3)
         if form.is_valid():
             new_finding = form.save(commit=False)
             new_finding.test = test
+            new_finding.cvss3 = cform.save()
+            new_finding.score = new_finding.cvss3.score
             new_finding.reporter = request.user
             new_finding.numerical_severity = Finding.get_numerical_severity(
                 new_finding.severity)
 
-            new_finding.active = True
             new_finding.false_p = False
             new_finding.duplicate = False
             new_finding.mitigated = None
@@ -712,6 +721,7 @@ def promote_to_finding(request, fid):
     add_breadcrumb(parent=test, title="Promote Finding", top_level=False, request=request)
     return render(request, 'dojo/promote_to_finding.html',
                   {'form': form,
+                   'cform': cform,
                    'test': test,
                    'stub_finding': finding,
                    'form_error': form_error,
@@ -739,11 +749,13 @@ def templates(request):
 @user_passes_test(lambda u: u.is_staff)
 def add_template(request):
     form = FindingTemplateForm()
+    cform = CVSSv3Form()
     if request.method == 'POST':
         form = FindingTemplateForm(request.POST)
+        cform = CVSSv3Form(request.POST)
         if form.is_valid():
             template = form.save(commit=False)
-            template.numerical_severity = Finding.get_numerical_severity(template.severity)
+            template.cvss3 = cform.save()
             template.save()
             tags = request.POST.getlist('tags')
             t = ", ".join(tags)
@@ -761,6 +773,7 @@ def add_template(request):
     add_breadcrumb(title="Add Template", top_level=False, request=request)
     return render(request, 'dojo/add_template.html',
                   {'form': form,
+                   'cform': cform,
                    'name': 'Add Template'
                    })
 
@@ -769,11 +782,13 @@ def add_template(request):
 def edit_template(request, tid):
     template = get_object_or_404(Finding_Template, id=tid)
     form = FindingTemplateForm(instance=template)
+    cform = CVSSv3Form(instance=template.cvss3)
     if request.method == 'POST':
         form = FindingTemplateForm(request.POST, instance=template)
+        cform = CVSSv3Form(request.POST, instance=template.cvss3)
         if form.is_valid():
             template = form.save(commit=False)
-            template.numerical_severity = Finding.get_numerical_severity(template.severity)
+            template.cvss3 = cform.save()
             template.save()
             tags = request.POST.getlist('tags')
             t = ", ".join(tags)
@@ -792,6 +807,7 @@ def edit_template(request, tid):
     add_breadcrumb(title="Edit Template", top_level=False, request=request)
     return render(request, 'dojo/add_template.html',
                   {'form': form,
+                   'cform': cform,
                    'name': 'Edit Template',
                    'template': template,
                    })

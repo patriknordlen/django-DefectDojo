@@ -9,7 +9,7 @@
 {% endblock %}
 {% block content %}
 
-    <form class="biweekly-metrics" action="{% url 'product_type_counts' %}" method="get">
+    <form class="biweekly-metrics" action="{% url 'customer_counts' %}" method="get">
         {{ form.as_p }}
         <input class="btn btn-sm btn-primary" type="submit" value="Generate Metrics For Selected Period"/>
     </form>
@@ -17,7 +17,7 @@
     {% if pt %}
         <h2>Finding Information For Period of {{ start_date.date }} - {{ end_date.date }}</h2>
         <h3 class="inline-block">{{ pt.name }}</h3> [
-        <a href="{% url 'product_type_metrics' pt.id %}" class="inline-block">View Details</a>]
+        <a href="{% url 'customer_metrics' pt.id %}" class="inline-block">View Details</a>]
         <div class="panel panel-default table-responsive">
             <div class="panel-heading">
                 <h4>Total Security Bug Count In Period</h4>

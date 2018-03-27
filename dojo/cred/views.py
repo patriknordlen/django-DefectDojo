@@ -19,7 +19,7 @@ from django.utils import timezone
 
 from dojo.filters import ProductFilter, ProductFindingFilter
 from dojo.forms import ProductForm, EngForm, DeleteProductForm
-from dojo.models import Product_Type, Finding, Product, Engagement, ScanSettings, Risk_Acceptance, Cred_User, Cred_Mapping
+from dojo.models import Customer, Finding, Product, Engagement, ScanSettings, Risk_Acceptance, Cred_User, Cred_Mapping
 from dojo.utils import get_page_items, add_breadcrumb, get_punchcard_data, handle_uploaded_selenium
 from dojo.models import *
 from dojo.forms import *

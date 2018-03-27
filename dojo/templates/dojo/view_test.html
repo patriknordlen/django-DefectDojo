@@ -1,17 +1,19 @@
 {% extends "base.html" %}
 {% load display_tags %}
+{% load navigation_tags %}
 {% load get_system_setting %}
 {% load static from staticfiles %}
 {% block add_styles %}
     ul#select_by_severity a:hover, ul#bulk_edit a:hover {
     cursor: pointer;
     }
+    .popover { max-width: 50%; }
 {% endblock %}
 {% block content %}
     <div class="panel panel-default">
         <div class="panel-heading">
             <div class="clearfix">
-                <h3 class="pull-left"> {{ test.test_type }}
+                <h3 class="pull-left"> {{ test.test_type }} for <a href="{% url 'view_engagement' test.engagement.id %}">{{ test.engagement }}</a>
                 {% if test.tags %}
                     <sup>
                         {% for tag in test.tags %}
@@ -44,11 +46,12 @@
                                 <i class="fa fa-comments"></i> Add Notes
                             </a>
                         </li>
-                        <li role="presentation">
+                        <!-- Removing this for now to avoid confusion...
+                            <li role="presentation">
                             <a href="{% url 'test_report' test.id %}">
                                 <i class="fa fa-file-text-o"></i> Report
                             </a>
-                        </li>
+                        </li> -->
                         <li role="presentation">
                             <a href="{% url 'test_ics' test.id %}">
                                 <i class="fa fa-calendar-plus-o"></i> Add To Calendar
@@ -69,44 +72,6 @@
                     </ul>
                 </div>
             </div>
-        </div>
-        <div class="table-responsive">
-            <table class="table-striped table table-condensed table-hover centered">
-                <tr>
-                    <th>Environment</th>
-                    <th>Engagement</th>
-                    <th>Target Start Date</th>
-                    <th>Target End Date</th>
-                    {% if test.percent_complete > 0 %}
-                        <th>Progress</th>
-                    {% endif %}
-
-                </tr>
-                <tr>
-                    <td>
-                        {% if test.environment %}
-                            {{ test.environment }}
-                        {% else %}
-                            <b><i>Unknown</i></b>
-                        {% endif %}
-                    </td>
-                    <td><a href="{% url 'view_engagement' test.engagement.id %}">{{ test.engagement }}</a></td>
-                    <td>{{ test.target_start.date }}</td>
-                    <td>{{ test.target_end.date }}</td>
-                    {% if test.percent_complete > 0 %}
-                        <td>
-                            <div class="progress">
-                                <div class="progress-bar" role="progressbar" aria-valuenow="{{ test.percent_complete }}"
-                                     aria-valuemin="0"
-                                     aria-valuemax="100" style="width: {{ test.percent_complete }}%;">
-                                    {{ test.percent_complete }}%
-                                </div>
-                            </div>
-                        </td>
-                    {% endif %}
-
-                </tr>
-            </table>
         </div>
     </div>
     <div class="panel panel-default to_highlight table-responsive">
@@ -136,9 +101,6 @@
                                 </select><br/><br/>
                                 <b>Status</b><br/>
                                 <label style="font-size: 80%; font-weight: normal; display: block">
-                                    <input id="id_active" name="active" type="checkbox"/> <span>Active</span>
-                                </label>
-                                <label style="font-size: 80%; font-weight: normal; display: block">
                                     <input id="id_verified" name="verified" type="checkbox"/> <span>Verified</span>
                                 </label>
                                 <label style="font-size: 80%; font-weight: normal; display: block">
@@ -156,6 +118,12 @@
                         </li>
                     </ul>
                 </div>
+               <div class="pull-left hidden" id="bulk_remove_menu">
+                   <form action="{% url 'finding_bulk_remove' test.id %}" method="post" id="bulk_remove_form">
+                    {% csrf_token %}
+                        <input type="submit" class="btn btn-sm btn-primary" type="button" value="Bulk Remove"/>
+                    </form>
+               </div>
                 <div id="test-pulldown" class="dropdown pull-right">
                     <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenu1"
                             data-toggle="dropdown" aria-expanded="true">
@@ -210,11 +178,9 @@
                     </th>
                     <th>Name</th>
                     <th>Reporter</th>
-                    <th>Mitigation Date</th>
                     <th>Severity</th>
                     <th>Verified</th>
-                    <th>Active</th>
-                    <th>Duplicate</th>
+                    <th>False Positive</th>
                     {% if "enable_jira"|get_system_setting %}
                     <th>Jira</th>
                     {% endif %}
@@ -230,7 +196,10 @@
                                        class="select_one {{ finding.severity }}"/>
                             </form>
                         </td>
-                        <td><a href="{% url 'view_finding' finding.id %}">{{ finding.title }}</a>
+                        <td><a href="{% url 'view_finding' finding.id %}"
+                            class="template-popover" data-placement="auto bottom" data-toggle="popover"
+                            data-trigger="hover" title="{{ finding.title|truncatechars:100 }}"
+                            data-content="{{ finding.description|truncatechars:500 }}">{{ finding.title }}</a>
                           {% if finding.tags %}
                               <sup>
                                   {% for tag in finding.tags %}
@@ -239,16 +208,14 @@
                               </sup>
                           {% endif %}
                         </td>
-                        <td>{{ finding.reporter.username }}</td>
-                        <td>{{ finding.mitigated }}</td>
+                        <td>{{ finding.reporter }}</td>
                         <td>
-                            <span class="label severity severity-{{ finding.severity }}">
-                                {{ finding.severity_display }}
+                            <span class="label severity severity-{{ finding.new_sev_level }}">
+                                {{ finding.new_sev }}
                             </span>
                         </td>
                         <td>{{ finding.verified }}</td>
-                        <td>{{ finding.active }}</td>
-                        <td>{{ finding.duplicate }}</td>
+                        <td>{{ finding.false_p }}</td>
                         {% if "enable_jira"|get_system_setting %}
                         <td>
                         <a href="{{finding.jira_conf.url}}/browse/{{finding.jira.jira_key}}" target="_blank"> {{finding.jira.jira_key}} </a>
@@ -318,10 +285,10 @@
                 {% for finding in stub_findings %}
                     <tr>
                         <td><a href="{% url 'promote_to_finding' finding.id %}">{{ finding.title }}</a></td>
-                        <td>{% if finding.severity == "Critical" or finding.severity == "High" %}
-                            <span class="text-error">
-                        {% else %}<span>{% endif %}{{ finding.severity }}</span></td>
-                        <td>{{ finding.reporter.username }}</td>
+                        <td><span class="label severity severity-{{ finding.new_sev_level }}">
+                            {{ finding.score }}
+                        </span></td>
+                        <td>{{ finding.reporter }}</td>
                         <td>{{ finding.date }}</td>
                         <td>
                             <div class="btn-group">
@@ -507,14 +474,28 @@
                 });
             });
 
+            $('form#bulk_remove_form').on('submit', function(e){
+                $('input[type=checkbox].select_one:checked').each(function(){
+                    var hidden_input = $('<input type="hidden" value="' + this.id + '" name="finding_to_remove">')
+                    $('form#bulk_remove_form').append(hidden_input);
+                });
+            });
+
+            $('input.select_one').on('click', function() {
+                $('div#bulk_edit_menu').removeClass('hidden');
+                $('div#bulk_remove_menu').removeClass('hidden');
+            });
+
             $('input#select_all').on('click', function (e) {
                 if ($(this).is(":checked")) {
                     $('input.select_one').prop('checked', true);
                     $('div#bulk_edit_menu').removeClass('hidden');
+                    $('div#bulk_remove_menu').removeClass('hidden');
                 }
                 else {
                     $('input.select_one').prop('checked', false);
                     $('div#bulk_edit_menu').addClass('hidden');
+                    $('div#bulk_remove_menu').addClass('hidden');
                 }
             });
 
@@ -532,9 +513,11 @@
 
                 if ($(this).attr('id') == 'None') {
                     $('div#bulk_edit_menu').addClass('hidden');
+                    $('div#bulk_remove_menu').addClass('hidden');
                 }
                 else {
                     $('div#bulk_edit_menu').removeClass('hidden');
+                    $('div#bulk_remove_menu').removeClass('hidden');
                 }
             });
 
@@ -624,6 +607,7 @@
                 return false;
             });
 
+            $('[data-toggle="popover"]').popover({container: 'body'});
         });
 
     </script>

@@ -15,6 +15,7 @@
 
         <form class="form-horizontal" action="{% url 'edit_finding' finding.id %}" method="post">
             {% csrf_token %}
+            {% include "dojo/form_fields.html" with form=cform %}
             {% include "dojo/form_fields.html" with form=form %}
             {%  if jform %}
                 <h3> JIRA </h3>
@@ -31,6 +32,7 @@
     {% else %}
         <form class="form-horizontal" action="{% url 'edit_finding' finding.id %}" method="post">
             {% csrf_token %}
+            {% include "dojo/form_fields.html" with form=cform %}
             {% include "dojo/form_fields.html" with form=form %}
             {%  if jform %}
                 {% include "dojo/form_fields.html" with form=jform %}

@@ -44,7 +44,7 @@ To get a better idea of what his team members are currently working on, he
 can start by checking the Calendar. This will show him any active Engagements
 that his team is involved in, based on the dates assigned to those Engagements.
 
-He can view metrics for a Product Type, such as "Third Party Apps" to track his
+He can view metrics for a Customer, such as "Third Party Apps" to track his
 team's activity and follow up with Product teams who have long-lived bugs. He
 can also look at all the Findings for which there is a Risk Acceptance
 associated, and ensure that the proper documentation or timeline has been

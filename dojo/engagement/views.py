@@ -40,7 +40,6 @@ logger = logging.getLogger(__name__)
 
 
 @user_passes_test(lambda u: u.is_staff)
-@cache_page(60 * 5)  # cache for 5 minutes
 def engagement_calendar(request):
     if not 'lead' in request.GET or '0' in request.GET.getlist('lead'):
         engagements = Engagement.objects.all()
@@ -49,9 +48,9 @@ def engagement_calendar(request):
         leads = request.GET.getlist('lead','')
         if '-1' in request.GET.getlist('lead'):
             leads.remove('-1')
-            filters.append(Q(lead__isnull=True))
-        filters.append(Q(lead__in=leads))
-        engagements = Engagement.objects.filter(reduce(operator.or_, filters))
+            filters.append(Q(analysts__isnull=True))
+        filters.append(Q(analysts__in=leads))
+        engagements = Engagement.objects.filter(reduce(operator.or_, filters)).distinct()
 
     add_breadcrumb(title="Engagement Calendar", top_level=True, request=request)
     return render(request, 'dojo/calendar.html', {
@@ -202,9 +201,12 @@ def delete_engagement(request, eid):
 
 @user_passes_test(lambda u: u.is_staff)
 def view_engagement(request, eid):
-    eng = Engagement.objects.get(id=eid)
+    if request.user.is_superuser:
+        eng = get_object_or_404(Engagement, id=eid)
+    else:
+        eng = get_object_or_404(Engagement, id=eid, analysts__in=[request.user])
+
     tests = Test.objects.filter(engagement=eng)
-    risks_accepted = eng.risk_acceptance.all()
     try:
         jissue = JIRA_Issue.objects.get(engagement=eng)
     except:
@@ -215,10 +217,6 @@ def view_engagement(request, eid):
     except:
         jconf = None
         pass
-    exclude_findings = [finding.id for ra in eng.risk_acceptance.all()
-                        for finding in ra.accepted_findings.all()]
-    eng_findings = Finding.objects.filter(test__in=eng.test_set.all()) \
-        .exclude(id__in=exclude_findings).order_by('title')
 
     try:
         check = Check_List.objects.get(engagement=eng)
@@ -229,9 +227,6 @@ def view_engagement(request, eid):
     if request.method == 'POST':
         eng.progress = 'check_list'
         eng.save()
-
-    creds = Cred_Mapping.objects.filter(product=eng.product).select_related('cred_id').order_by('cred_id')
-    cred_eng = Cred_Mapping.objects.filter(engagement=eng.id).select_related('cred_id').order_by('cred_id')
 
     add_breadcrumb(parent=eng, top_level=False, request=request)
     if hasattr(settings, 'ENABLE_DEDUPLICATION'):
@@ -259,11 +254,6 @@ def view_engagement(request, eid):
 
     end_date = timezone.now()
 
-    risk_acceptances = Risk_Acceptance.objects.filter(engagement__in=Engagement.objects.filter(product=eng.product))
-
-    accepted_findings = [finding for ra in risk_acceptances
-                         for finding in ra.accepted_findings.all()]
-
     week_date = end_date - timedelta(days=7)  # seven days and /newer are considered "new"
 
     new_verified_findings = Finding.objects.filter(test__engagement__product=eng.product,
@@ -279,7 +269,6 @@ def view_engagement(request, eid):
                                            verified=True,
                                            duplicate=False,
                                            out_of_scope=False,
-                                           active=True,
                                            mitigated__isnull=True)
 
     closed_findings = Finding.objects.filter(test__engagement__product=eng.product,
@@ -293,98 +282,49 @@ def view_engagement(request, eid):
     return render(request, 'dojo/view_eng.html',
                   {'eng': eng, 'tests': tests,
                    'findings': fpage, 'enabled': enabled,
-                   'check': check, 'threat': eng.tmodel_path,
-                   'risk': eng.risk_path, 'form': form,
-                   'risks_accepted': risks_accepted,
-                   'can_add_risk': len(eng_findings),
+                   'form': form,
                    'jissue': jissue, 'jconf': jconf,
                    'open_findings': open_findings,
                    'closed_findings': closed_findings,
-                   'accepted_findings': accepted_findings,
                    'new_findings': new_verified_findings,
-                   'start_date': start_date,
-                   'creds': creds,
-                   'cred_eng': cred_eng
+                   'start_date': start_date
                    })
 
 
 @user_passes_test(lambda u: u.is_staff)
 def add_tests(request, eid):
     eng = Engagement.objects.get(id=eid)
-    cred_form = CredMappingForm()
-    cred_form.fields["cred_user"].queryset = Cred_Mapping.objects.filter(engagement=eng).order_by('cred_id')
 
-    if request.method == 'POST':
-        form = TestForm(request.POST)
-        cred_form = CredMappingForm(request.POST)
-        cred_form.fields["cred_user"].queryset = Cred_Mapping.objects.filter(engagement=eng).order_by('cred_id')
-        if form.is_valid():
-            new_test = form.save(commit=False)
-            new_test.engagement = eng
-	    try:
-            	new_test.lead = User.objects.get(id=form['lead'].value())
-	    except:
-		new_test.lead = None
-		pass
-            new_test.save()
-            tags = request.POST.getlist('tags')
-            t = ", ".join(tags)
-            new_test.tags = t
+    try:
+        manual_test = Test.objects.get(engagement=eng, test_type__name='Manual findings')
+    except:
+        manual_test = Test.objects.create(engagement=eng, test_type=Test_Type.objects.get(name='Manual findings'))
 
-            #Save the credential to the test
-            if cred_form.is_valid():
-                if cred_form.cleaned_data['cred_user']:
-                    #Select the credential mapping object from the selected list and only allow if the credential is associated with the product
-                    cred_user = Cred_Mapping.objects.filter(pk=cred_form.cleaned_data['cred_user'].id, engagement=eid).first()
+    return HttpResponseRedirect(reverse('add_findings', args=(manual_test.id,)))
 
-                    new_f = cred_form.save(commit=False)
-                    new_f.test = new_test
-                    new_f.cred_id = cred_user.cred_id
-                    new_f.save()
+@user_passes_test(lambda u: u.is_staff)
+def add_template_tests(request, eid):
+    eng = Engagement.objects.get(id=eid)
 
-            messages.add_message(request,
-                                 messages.SUCCESS,
-                                 'Test added successfully.',
-                                 extra_tags='alert-success')
+    try:
+        manual_test = Test.objects.get(engagement=eng, test_type__name='Manual findings')
+    except:
+        manual_test = Test.objects.create(engagement=eng, test_type=Test_Type.objects.get(name='Manual findings'))
 
-            create_notification(event='test_added', title='Test added', test=new_test, engagement=eng, url=request.build_absolute_uri(reverse('view_engagement', args=(eng.id,))))
-
-            if '_Add Another Test' in request.POST:
-                return HttpResponseRedirect(reverse('add_tests', args=(eng.id,)))
-            elif '_Add Findings' in request.POST:
-                return HttpResponseRedirect(reverse('add_findings', args=(new_test.id,)))
-            elif '_Finished' in request.POST:
-                return HttpResponseRedirect(reverse('view_engagement', args=(eng.id,)))
-    else:
-        form = TestForm()
-	form.initial['target_start'] = eng.target_start
-	form.initial['target_end'] = eng.target_end
-    add_breadcrumb(parent=eng, title="Add Tests", top_level=False, request=request)
-    return render(request, 'dojo/add_tests.html',
-                  {'form': form,
-                  'cred_form': cred_form,
-                  'eid': eid
-                  })
-
+    return HttpResponseRedirect(reverse('search', args=(manual_test.id,)))
 
 @user_passes_test(lambda u: u.is_staff)
 def import_scan_results(request, eid):
     engagement = get_object_or_404(Engagement, id=eid)
     finding_count = 0
     form = ImportScanForm()
-    cred_form = CredMappingForm()
-    cred_form.fields["cred_user"].queryset = Cred_Mapping.objects.filter(engagement=engagement).order_by('cred_id')
 
     if request.method == "POST":
         form = ImportScanForm(request.POST, request.FILES)
-        cred_form = CredMappingForm(request.POST)
-        cred_form.fields["cred_user"].queryset = Cred_Mapping.objects.filter(engagement=engagement).order_by('cred_id')
         if form.is_valid():
             file = request.FILES['file']
             scan_date = form.cleaned_data['scan_date']
             min_sev = form.cleaned_data['minimum_severity']
-            active = form.cleaned_data['active']
-            verified = form.cleaned_data['verified']
 
             scan_type = request.POST['scan_type']
             if not any(scan_type in code for code in ImportScanForm.SCAN_TYPE_CHOICES):
@@ -393,25 +333,13 @@ def import_scan_results(request, eid):
             tt, t_created = Test_Type.objects.get_or_create(name=scan_type)
             # will save in development environment
             environment, env_created = Development_Environment.objects.get_or_create(name="Development")
-            t = Test(engagement=engagement, test_type=tt, target_start=scan_date,
-                     target_end=scan_date, environment=environment, percent_complete=100)
-            t.lead = request.user
+            t = Test(engagement=engagement, test_type=tt)
             t.full_clean()
             t.save()
             tags = request.POST.getlist('tags')
             ts = ", ".join(tags)
             t.tags = ts
 
-            #Save the credential to the test
-            if cred_form.is_valid():
-                if cred_form.cleaned_data['cred_user']:
-                    #Select the credential mapping object from the selected list and only allow if the credential is associated with the product
-                    cred_user = Cred_Mapping.objects.filter(pk=cred_form.cleaned_data['cred_user'].id, engagement=eid).first()
-
-                    new_f = cred_form.save(commit=False)
-                    new_f.test = t
-                    new_f.cred_id = cred_user.cred_id
-                    new_f.save()
 
             try:
                 parser = import_parser_factory(file, t)
@@ -430,12 +358,10 @@ def import_scan_results(request, eid):
                         continue
 
                     item.test = t
-                    item.date = t.target_start
+                    item.date = timezone.now()
                     item.reporter = request.user
                     item.last_reviewed = timezone.now()
                     item.last_reviewed_by = request.user
-                    item.active = active
-                    item.verified = verified
                     item.save()
 
                     if hasattr(item, 'unsaved_req_resp') and len(item.unsaved_req_resp) > 0:
@@ -458,6 +384,8 @@ def import_scan_results(request, eid):
                     for endpoint in item.unsaved_endpoints:
                         ep, created = Endpoint.objects.get_or_create(protocol=endpoint.protocol,
                                                                      host=endpoint.host,
+                                                                     fqdn=endpoint.fqdn,
+                                                                     port=endpoint.port,
                                                                      path=endpoint.path,
                                                                      query=endpoint.query,
                                                                      fragment=endpoint.fragment,
@@ -490,7 +418,6 @@ def import_scan_results(request, eid):
                   'dojo/import_scan_results.html',
                   {'form': form,
                    'eid': engagement.id,
-                   'cred_form': cred_form,
                    })
 
 

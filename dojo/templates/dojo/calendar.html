@@ -36,6 +36,18 @@
     <script type="application/javascript" src="{% static "chosen/chosen.jquery.min.js" %}"></script>
     <script>
           $(function () {
+            function randomcolor() {
+                colstr = "#";
+                for (i = 0; i < 3; i++) {
+                    c = (128*Math.random()|0).toString(16);
+                    if (c.length < 2) { c = "0" + c; }
+                    colstr += c;
+                }
+
+                return colstr;
+            }
+
+
             $('#caltype').change(function() { $('#calfilter').attr('action', '/calendar/' + $(this).val()); });
             $(".chosen-select").chosen({disable_search_threshold: 10});
             $('#caltype').val('{{ caltype }}'); $('#caltype').trigger('change');
@@ -53,7 +65,7 @@
                     {% if caltype == 'tests' %}
                         {% for t in tests %}
                             {
-                                title: '{{t.engagement.product.name}}: {{ t.engagement.name|default:"Unknown" }} - {{ t.test_type }} ({{ t.lead|default:"Unassigned" }})',
+                                title: '{{t.engagement.product}}: {{ t.engagement.name|default:"Unknown" }} - {{ t.test_type }} ({{ t.lead|default:"Unassigned" }})',
                                 start: '{{t.target_start|date:"c"}}',
                                 end: '{{t.target_end|date:"c"}}',
                                 url: '{% url 'view_test' t.id %}',
@@ -64,11 +76,11 @@
                     {% else %}
                         {% for e in engagements %}
                             {
-                                title: '{{e.product.name}}: {{ e.name|default:"Unknown" }} ({{ e.lead|default:"Unassigned" }})',
+                                title: '{{ e.product.customer.name }} - {{e.product.name}}: {{ e.name|default:"Unknown" }} ({% if e.analysts %} {% for a in e.analysts.all %} {{ a }} {% endfor %} {% else %} Unassigned {% endif %})',
                                 start: '{{e.target_start|date:"c"}}',
                                 end: '{{e.target_end|date:"c"}}',
                                 url: '{% url 'view_engagement' e.id %}',
-                                color: {%  if e.active %}'#337ab7'{% else %}'#b9b9b9'{% endif %},
+                                color: {% if e.active %} randomcolor() {% else %}'#b9b9b9'{% endif %},
                                 overlap: true
                             },
                         {%  endfor %}

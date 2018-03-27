@@ -15,7 +15,10 @@ from celery.decorators import task
 from dojo.models import Finding, Test, Engagement
 from django.utils import timezone
 
+from docxtpl import DocxTemplate, RichText, Markdown
+from StringIO import StringIO
 import pdfkit
+import sys
 from dojo.celery import app
 from dojo.reports.widgets import report_widget_factory
 from dojo.utils import add_comment, add_epic, add_issue, update_epic, update_issue, \
@@ -46,6 +49,80 @@ def add_alerts(self, runinterval):
                            url=reverse('view_engagement', args=(eng.id,)),
                            recipients=[eng.lead])
 
+
+@app.task(bind=True)
+def async_docx_report(self,
+                     report=None,
+                     template="None",
+                     filename='report.docx',
+                     report_title=None,
+                     report_subtitle=None,
+                     report_info=None,
+                     context={},
+                     uri=None):
+
+    def format_fields(tpl):
+
+        context['engagement'].executive_summary = Markdown(context['engagement'].executive_summary)
+        context['engagement'].technical_summary = Markdown(context['engagement'].technical_summary)
+
+        for finding in context['findings']:
+            if finding.formatting == 'Markdown':
+                format_func = Markdown
+            else:
+                format_func = RichText
+            
+            finding.pics = [InlineImage(tpl, settings.MEDIA_ROOT+pic.image.name, width=Mm(150)) for pic in finding.images.all()]
+
+            finding.description = format_func(finding.description)
+            finding.impact = format_func(finding.impact)
+            finding.mitigation = format_func(finding.mitigation)
+            finding.references = format_func(finding.references)
+
+    import sys
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
+
+    try:
+        report.task_id = async_docx_report.request.id
+        report.status = 'running'
+        report.save()
+
+        d = DocxTemplate(template)
+        format_fields(d)
+        d.render(context)
+
+        if report.file.name:
+            d.save(report.file.path)
+        else:
+            rtmp = StringIO()
+            d.save(rtmp)
+            f = ContentFile(rtmp.getvalue())
+            report.file.save(filename, f)
+
+        report.status = 'success'
+        report.done_datetime = timezone.now()
+        report.save()
+
+        create_notification(event='report_created', 
+                            title='Report created',
+                            description='The report "%s" is ready.' % report.name,
+                            icon='file-text',
+                            url=uri, report=report, objowner=report.requester)
+    except Exception as e:
+        import traceback
+        report.status = 'error'
+        report.save()
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        traceback.print_tb(exc_tb)
+        # print(exc_type, exc_tb.tb_lineno)
+        raise e
+    return True
+
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        print(exc_type, exc_tb.tb_lineno)
+        raise e
+    return True
 
 @app.task(bind=True)
 def async_pdf_report(self,
@@ -80,7 +157,8 @@ def async_pdf_report(self,
                                  False,
                                  configuration=config,
                                  cover=cover,
-                                 toc=toc)
+                                 toc=toc,
+                                 cover_first=True)
         if report.file.name:
             with open(report.file.path, 'w') as f:
                 f.write(pdf)
@@ -131,13 +209,13 @@ def async_custom_pdf_report(self,
         toc_depth = 4
 
         if 'table-of-contents' in selected_widgets:
-            xsl_style_sheet_tempalte = "dojo/pdf_toc.xsl"
+            xsl_style_sheet_template = "dojo/pdf_toc.xsl"
             temp = tempfile.NamedTemporaryFile()
 
             toc_settings = selected_widgets['table-of-contents']
 
             toc_depth = toc_settings.depth
-            toc_bytes = render_to_string(xsl_style_sheet_tempalte, {'widgets': widgets,
+            toc_bytes = render_to_string(xsl_style_sheet_template, {'widgets': widgets,
                                                                     'depth': toc_depth,
                                                                     'title': toc_settings.title})
             temp.write(toc_bytes)

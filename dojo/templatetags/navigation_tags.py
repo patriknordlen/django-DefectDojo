@@ -2,14 +2,14 @@ from django import template
 from django.utils.safestring import mark_safe as safe
 from django.utils.html import escape
 
-from dojo.models import Product_Type, Alerts
+from dojo.models import Customer, Alerts
 
 register = template.Library()
 
 
 @register.simple_tag(takes_context=True)
 def alert_count(context):
-    count = Alerts.objects.filter(user_id=context['request'].user).count()
+    count = Alerts.objects.filter(user=context['request'].user,read=False).count()
     return count if count > 0 else 0
 
 
@@ -31,7 +31,7 @@ def query_string_as_hidden(context):
 
 @register.inclusion_tag('pt_nav_items.html')
 def pt_metric_nav():
-    pt = Product_Type.objects.all().order_by('name')
+    pt = Customer.objects.all().order_by('name')
     return {'pt': pt}
 
 

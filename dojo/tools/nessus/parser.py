@@ -3,7 +3,7 @@ from defusedxml import ElementTree
 import os
 import csv
 import re
-from dojo.models import Endpoint, Finding
+from dojo.models import Endpoint, Finding, CVSSv2
 
 __author__ = 'jay7958'
 
@@ -106,7 +106,6 @@ class NessusCSVParser(object):
                                              dat['plugin_output']
                     find = Finding(title=dat['title'],
                                    test=test,
-                                   active=False,
                                    verified=False, description=dat['description'],
                                    severity=dat['severity'],
                                    numerical_severity=Finding.get_numerical_severity(dat['severity']),
@@ -145,6 +144,8 @@ class NessusXMLParser(object):
                     #     continue
 
                     port = None
+                    cvss = None
+                    score = None
                     if float(item.attrib["port"]) > 0:
                         port = item.attrib["port"]
                     description = ""
@@ -162,11 +163,10 @@ class NessusXMLParser(object):
 
                     impact = item.find("description").text + "\n\n"
                     if item.find("cvss_vector") is not None:
-                        impact += "CVSS Vector: " + item.find("cvss_vector").text + "\n"
-                    if item.find("cvss_base_score") is not None:
-                        impact += "CVSS Base Score: " + item.find("cvss_base_score").text + "\n"
-                    if item.find("cvss_temporal_score") is not None:
-                        impact += "CVSS Temporal Score: " + item.find("cvss_temporal_score").text + "\n"
+                        cvss = CVSSv2()
+                        cvss.fromvector(item.find("cvss_vector").text)
+                        score = cvss.score
+                        cvss.save()
 
                     mitigation = item.find("solution").text if item.find("solution") is not None else "N/A"
                     references = ""
@@ -188,12 +188,16 @@ class NessusXMLParser(object):
                         find = dupes[dupe_key]
                         if plugin_output is not None:
                             find.description += plugin_output
+                        e = Endpoint(host=ip, fqdn=fqdn, port=port)
+                        if e not in find.unsaved_endpoints:
+                            find.unsaved_endpoints.append(e)
                     else:
                         find = Finding(title=title,
                                        test=test,
-                                       active=False,
                                        verified=False,
                                        description=description,
+                                       cvss2=cvss,
+                                       score=score,
                                        severity=severity,
                                        numerical_severity=Finding.get_numerical_severity(severity),
                                        mitigation=mitigation,
@@ -202,9 +206,7 @@ class NessusXMLParser(object):
                                        cwe=cwe)
                         find.unsaved_endpoints = list()
                         dupes[dupe_key] = find
-                    find.unsaved_endpoints.append(Endpoint(host=ip + (":" + port if port is not None else "")))
-
-                    if fqdn is not None:
-                        find.unsaved_endpoints.append(Endpoint(host=fqdn))
+                        find.unsaved_endpoints.append(Endpoint(host=ip, fqdn=fqdn, port=port))
+                        print "Adding new endpoint: %s %s %s" % (ip, fqdn, port)
 
         self.items = dupes.values()
