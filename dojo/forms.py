@@ -1212,7 +1212,7 @@ class ReportOptionsForm(forms.Form):
     # include_finding_images = forms.ChoiceField(choices=yes_no, label="Finding Images")
     # include_executive_summary = forms.ChoiceField(choices=yes_no, label="Executive Summary")
     # include_table_of_contents = forms.ChoiceField(choices=yes_no, label="Table of Contents")
-    #report_type = forms.ChoiceField(choices=(('PDF', 'PDF'), ('AsciiDoc', 'AsciiDoc'),('docx','docx'),('XNRF','XNRF')))
+    report_type = forms.ChoiceField(choices=(('docx','docx'),('PDF', 'PDF'), ('AsciiDoc', 'AsciiDoc')))
     report_template = forms.ChoiceField(choices=[(i,basename(f)) for i,f in enumerate(glob('dojo/templates/dojo/*.docx'))])
 
 
