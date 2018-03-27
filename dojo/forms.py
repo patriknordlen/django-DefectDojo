@@ -25,7 +25,6 @@ from dojo.models import Finding, Customer, Product, ScanSettings, VA, \
     JIRA_Issue, JIRA_PKey, JIRA_Conf, UserContactInfo, Tool_Type, Tool_Configuration, Tool_Product_Settings, \
     Cred_User, Cred_Mapping, System_Settings, Notifications, CVSSv2, CVSSv3
 from dojo.utils import get_system_setting
-from tinymce.widgets import TinyMCE
 from markdownx.fields import MarkdownxFormField
 
 RE_DATE = re.compile(r'(\d{4})-(\d\d?)-(\d\d?)$')
