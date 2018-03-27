@@ -41,12 +41,12 @@ setup(
         'pycrypto',
         'lxml',
         'django-multiselectfield',
-        'django-tinymce',
         'python-docx',
-        'docxtpl',
+        'docxtpl>=0.5.0',
         'django-markdownx'],
     dependency_links=[
         "https://github.com/grendel513/python-pdfkit/tarball/master#egg=pdfkit-0.5.0",
+        "https://github.com/patriknordlen/python-docx-template/tarball/master#egg=docxtpl-0.5.0",
     ],
     url='https://github.com/owasp/django-DefectDojo'
 )
