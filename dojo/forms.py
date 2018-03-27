@@ -889,12 +889,12 @@ class AddEndpointForm(forms.Form):
         processed_endpoints = []
         for e in self.endpoints_to_process:
             try:
-            endpoint, created = Endpoint.objects.get_or_create(protocol=e[0],
-                                                               host=e[1],
-                                                               path=e[2],
-                                                               query=e[3],
-                                                               fragment=e[4],
-                                                               product=self.product)
+                endpoint, created = Endpoint.objects.get_or_create(protocol=e[0],
+                                                                host=e[1],
+                                                                path=e[2],
+                                                                query=e[3],
+                                                                fragment=e[4],
+                                                                product=self.product)
             except MultipleObjectsReturned:
                 endpoint = Endpoint.objects.filter(protocol=e[0],
                                                    host=e[1],

@@ -195,7 +195,6 @@ INSTALLED_APPS = (
     'custom_field',
     'imagekit',
     'multiselectfield',
-    'python-docx',
     'docxtpl'
 )
 

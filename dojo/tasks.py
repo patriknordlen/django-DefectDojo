@@ -117,12 +117,9 @@ def async_docx_report(self,
         traceback.print_tb(exc_tb)
         # print(exc_type, exc_tb.tb_lineno)
         raise e
+
     return True
 
-        exc_type, exc_obj, exc_tb = sys.exc_info()
-        print(exc_type, exc_tb.tb_lineno)
-        raise e
-    return True
 
 @app.task(bind=True)
 def async_pdf_report(self,
